@@ -100,7 +100,7 @@ def summarize_transcript(request, transcript_id):
                 "Content-Type":  "application/json",
             },
             json={
-                "model":      "llama3-8b-8192",  # or "mixtral-8x7b-32768" if available
+                "model":      "llama3-8b-8192",  # or "mixtral-8x7b-32768"
                 "messages":   [{"role": "user", "content": prompt}],
                 "temperature":0.5,
                 "max_tokens": 256,

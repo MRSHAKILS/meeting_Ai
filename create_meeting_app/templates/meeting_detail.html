@@ -18,7 +18,7 @@
               <p class="font-semibold text-blue-600">{{ seg.speaker }}:</p>
             {% endif %}
             <p class="mt-1 whitespace-pre-wrap">{{ seg.text }}</p>
-            <p class="text-xs text-gray-600 mt-1">{{ seg.created }}</p>
+            {# Removed timestamp line so no more dates/times #}
           </div>
         {% empty %}
           <p>No transcript yet.</p>
