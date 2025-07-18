@@ -12,6 +12,7 @@ from django.http   import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
+from google.cloud import translate_v2 as translate
 
 from .models import Transcript
 
@@ -88,9 +89,46 @@ def transcribe_meeting_view(request, meeting_id):
 @login_required
 @require_POST
 def summarize_transcript(request, transcript_id):
-    t = get_object_or_404(Transcript, pk=transcript_id, meeting__user=request.user)
+    t = get_object_or_404(
+        Transcript,
+        pk=transcript_id,
+        meeting__user=request.user
+    )
 
-    prompt = f"Summarize this meeting transcription concisely:\n\n{t.text}"
+    # 1. Translate to English if needed
+    translated_text = t.translated_text
+    if not translated_text:
+        client = translate.Client()
+        result = client.translate(
+            t.text,
+            source_language="bn",  # assuming Bangla input
+            target_language="en",
+            format_="text"
+        )
+        translated_text = result["translatedText"]
+        t.translated_text = translated_text
+        t.save(update_fields=["translated_text"])
+
+    # 2. Build the summarization prompt with ENGLISH
+    prompt = f"""
+You are a highly intelligent AI assistant designed to take unstructured meeting transcripts and produce clear, detailed, and professional summaries.
+
+Your summary **must be helpful to someone who didn’t attend the meeting**. Do not say “None” if something isn’t clear — try your best to infer reasonable insights.
+
+Please generate a concise summary that includes:
+
+- 📝 1.Topics Discussed: What was talked about? What issues or themes came up?
+- ✅ 2.Decisions Made: What was agreed upon or concluded?
+- 📌 3.Action Items: What needs to be done next? Who is responsible?
+- ⏳ 4.Deadlines / Next Steps: Any follow-up meetings, tasks, or due dates?
+- 🧠 5.Overall Summary: In 1–2 sentences, what was the meeting about?
+
+Format the output with proper headings and bullet points.
+
+Transcript:
+{translated_text}
+""".strip()
+
 
     try:
         resp = requests.post(
@@ -100,20 +138,22 @@ def summarize_transcript(request, transcript_id):
                 "Content-Type":  "application/json",
             },
             json={
-                "model":      "llama3-8b-8192",  # or "mixtral-8x7b-32768"
-                "messages":   [{"role": "user", "content": prompt}],
-                "temperature":0.5,
-                "max_tokens": 256,
+                "model":       "llama3-8b-8192",  # or "mixtral-8x7b-32768"
+                "messages":    [{"role": "user", "content": prompt}],
+                "temperature": 0.5,
+                "max_tokens":  256,
             },
             timeout=30,
         )
-
         resp.raise_for_status()
         summary = resp.json()["choices"][0]["message"]["content"].strip()
+
+        # 3. Save and return the summary
         t.summary = summary
-        t.save()
+        t.save(update_fields=["summary"])
         return JsonResponse({"success": True, "summary": summary})
 
-    except requests.exceptions.HTTPError as e:
-        print("Groq API error:", resp.status_code, resp.text)
-        return JsonResponse({"success": False, "error": resp.text}, status=500)
+    except requests.exceptions.HTTPError:
+        error_text = resp.text
+        print("Groq API error:", resp.status_code, error_text)
+        return JsonResponse({"success": False, "error": error_text}, status=500)
