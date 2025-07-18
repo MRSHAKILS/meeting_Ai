@@ -13,6 +13,18 @@ KEY_PATH = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
 speech_client = speech.SpeechClient.from_service_account_file(KEY_PATH)
 storage_client = storage.Client.from_service_account_json(KEY_PATH)
 
+# Your custom English words dictionary (Bangla phonetic to English)
+ENGLISH_WORDS = {
+    "সিরিয়াসলি": "seriously",
+    "হোমওয়ার্ক": "homework",
+    
+}
+
+def restore_english_words(text):
+    for bangla_word, english_word in ENGLISH_WORDS.items():
+        text = text.replace(bangla_word, english_word)
+    return text
+
 class Command(BaseCommand):
     help = "Transcribe WAV files in Bangla with smart punctuation"
 
@@ -72,10 +84,13 @@ class Command(BaseCommand):
                 punctuated = punctuator.restore_punctuation(raw_text)
                 punctuated_bangla = punctuated.replace('.', '।')
 
+                # 5.1) Restore English words from your custom dictionary
+                final_text = restore_english_words(punctuated_bangla)
+
                 # 6) Save to DB
                 Transcript.objects.create(
                     meeting=meeting,
-                    text=punctuated_bangla
+                    text=final_text
                 )
 
                 # 7) Clean up
