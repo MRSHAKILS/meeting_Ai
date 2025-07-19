@@ -56,3 +56,4 @@ logs/
 cron.log
 meetbot.log
 secrets/json/*.json
+lid.176.bin
