@@ -21,6 +21,44 @@
     {% endfor %}
   {% endif %}
 
+  <!-- Statistics Section -->
+  <div class="stats-section">
+    <div class="stats-grid">
+      <div class="stat-card upcoming">
+        <div class="stat-icon">📅</div>
+        <div class="stat-content">
+          <div class="stat-number">{{ upcoming_count|default:0 }}</div>
+          <div class="stat-label">Upcoming</div>
+        </div>
+      </div>
+      
+      <div class="stat-card ongoing">
+        <div class="stat-icon">🔴</div>
+        <div class="stat-content">
+          <div class="stat-number">{{ ongoing_count|default:0 }}</div>
+          <div class="stat-label">Ongoing</div>
+        </div>
+      </div>
+      
+      <div class="stat-card completed">
+        <div class="stat-icon">📝</div>
+        <div class="stat-content">
+          <div class="stat-number">{{ summarized_count|default:0 }}</div>
+          <div class="stat-label">Summarized</div>
+        </div>
+      </div>
+      
+      <div class="stat-card total">
+        <div class="stat-icon">📊</div>
+        <div class="stat-content">
+          <div class="stat-number">{{ total_meetings|default:0 }}</div>
+          <div class="stat-label">Total Meetings</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+
   <!-- Search Bar -->
   <div class="search-section">
     <div class="search-container">
