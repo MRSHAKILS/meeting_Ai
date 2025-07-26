@@ -8,6 +8,11 @@ https://docs.djangoproject.com/en/5.2/howto/deployment/wsgi/
 """
 
 import os
+<<<<<<< HEAD
+=======
+import dotenv
+dotenv.load_dotenv()
+>>>>>>> 3c1b82c32efc8d5ab0d855a36c6c86fc3a730fba
 
 from django.core.wsgi import get_wsgi_application
 

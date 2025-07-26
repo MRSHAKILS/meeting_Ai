@@ -3,7 +3,13 @@
 import os
 import sys
 
+<<<<<<< HEAD
 
+=======
+import dotenv
+
+dotenv.load_dotenv()
+>>>>>>> 3c1b82c32efc8d5ab0d855a36c6c86fc3a730fba
 def main():
     """Run administrative tasks."""
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'meeting_agent.settings')

@@ -7,6 +7,10 @@
   <div class="header">
     <div class="header-content">
       <h1>Meeting Hub</h1>
+<<<<<<< HEAD
+=======
+      <a href="{% url 'profile' %}" class="btn btn-secondary">Go to Profile</a>
+>>>>>>> 3c1b82c32efc8d5ab0d855a36c6c86fc3a730fba
       <p class="subtitle">Organize and manage your meetings efficiently</p>
     </div>
   </div>
@@ -57,7 +61,10 @@
       </div>
     </div>
   </div>
+<<<<<<< HEAD
   
+=======
+>>>>>>> 3c1b82c32efc8d5ab0d855a36c6c86fc3a730fba
 
   <!-- Search Bar -->
   <div class="search-section">
@@ -92,7 +99,11 @@
           <div class="meeting-card" onclick="handleMeetingClick({{ m.id }}, {% if m.meeting_link and m.join_time %}1{% else %}0{% endif %}, '{{ m.get_absolute_url|escapejs }}')">
             <div class="card-header">
               <div class="card-status {% if m.meeting_link and m.join_time %}active{% else %}pending{% endif %}"></div>
+<<<<<<< HEAD
               <button type="button" class="delete-btn" data-meeting-id="{{ m.id }}">Delete</button>
+=======
+              <button type="button" class="delete-btn" data-meeting-id="{{ m.id }}" data-delete-url="{% url 'delete_meeting' meeting_id=m.id %}">Delete</button>
+>>>>>>> 3c1b82c32efc8d5ab0d855a36c6c86fc3a730fba
             </div>
             <div class="card-content">
               <h3>{{ m.name }}</h3>
@@ -267,6 +278,7 @@
     });
   }
 
+<<<<<<< HEAD
   // Add delete button handling
   document.querySelector('.meeting-grid').addEventListener('click', function(e) {
     if (e.target.classList.contains('delete-btn')) {
@@ -281,17 +293,36 @@
   function deleteMeeting(meetingId, button) {
     const csrfToken = document.querySelector('#createModal input[name="csrfmiddlewaretoken"]').value;
     fetch(`/delete_meeting/${meetingId}/`, {
+=======
+  // Delete meeting function
+  function deleteMeeting(meetingId, button) {
+    const csrfToken = getCookie('csrftoken');
+    const deleteUrl = button.dataset.deleteUrl; // Use URL from data-delete-url
+
+    fetch(deleteUrl, {
+>>>>>>> 3c1b82c32efc8d5ab0d855a36c6c86fc3a730fba
       method: 'POST',
       headers: {
         'X-CSRFToken': csrfToken,
         'Content-Type': 'application/json',
       },
     })
+<<<<<<< HEAD
     .then(response => {
       if (response.ok) {
         // Remove the meeting card from the DOM
         const card = button.closest('.meeting-card');
         card.remove();
+=======
+    .then(response => response.json()) // Parse JSON response
+    .then(data => {
+      if (data.status === 'success') {
+        // Remove the meeting card from the DOM
+        const card = button.closest('.meeting-card');
+        card.remove();
+        // Optional: Show success message
+        alert('Meeting deleted successfully!');
+>>>>>>> 3c1b82c32efc8d5ab0d855a36c6c86fc3a730fba
       } else {
         alert('Failed to delete meeting');
       }
@@ -301,5 +332,39 @@
       alert('An error occurred while deleting the meeting');
     });
   }
+<<<<<<< HEAD
+=======
+
+  // CSRF token fetcher
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let cookie of cookies) {
+        cookie = cookie.trim();
+        if (cookie.startsWith(name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  // Attach event listeners to delete buttons to stop propagation
+  document.querySelectorAll('.delete-btn').forEach(button => {
+    button.addEventListener('click', function(e) {
+      e.stopPropagation();
+      e.preventDefault();
+
+      const meetingId = this.dataset.meetingId;
+      if (!meetingId) return;
+
+      if (confirm('Are you sure you want to delete this meeting?')) {
+        deleteMeeting(meetingId, this);
+      }
+    });
+  });
+>>>>>>> 3c1b82c32efc8d5ab0d855a36c6c86fc3a730fba
 </script>
 {% endblock %}

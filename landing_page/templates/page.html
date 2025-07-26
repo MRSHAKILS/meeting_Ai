@@ -7,30 +7,54 @@
     <title>Meeting Workflow - AI Meeting Assistant</title>
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<<<<<<< HEAD
+=======
+    <!-- Updated Chart.js version -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+>>>>>>> 3c1b82c32efc8d5ab0d855a36c6c86fc3a730fba
 </head>
 <body>
     <!-- Navigation Bar -->
     <nav class="navbar">
         <div class="container">
+<<<<<<< HEAD
             <a href="/" class="logo">
                 <i class="fas fa-robot"></i>
                 <span>Meeting_Workflow.ai</span>
             </a>
+=======
+            <div class="logoTitle">
+                <a href="/" class="logo">
+                    <i class="fas fa-robot"></i>
+                    <span>Meeting_Workflow.ai</span>
+                </a>
+            </div>
+>>>>>>> 3c1b82c32efc8d5ab0d855a36c6c86fc3a730fba
             <div class="menu-toggle">
                 <i class="fas fa-bars"></i>
             </div>
             <ul class="nav-links">
                 <li><a href="#home">Home</a></li>
+<<<<<<< HEAD
                 <li><a href="/add-meeting/">Add Meeting</a></li>    
                 <li><a href="#features">Features</a></li>
                 <li><a href="#how-it-works">How It Works</a></li>
                 <li><a href="#about">About Us</a></li>          
                 <li><a href="/login/" class="btn-login"> Login/Signup </a></li>
+=======
+                <li><a href="#features">Features</a></li>
+                <li><a href="#analytics">Analytics</a></li>
+                <li><a href="#how-it-works">How It Works</a></li>
+                <li><a href="#about">About Us</a></li>    
+                <li><a href="/pricing">Pricing</a></li>      
+                <li><a href="/login/" class="btn-login">Login/Signup</a></li>
+>>>>>>> 3c1b82c32efc8d5ab0d855a36c6c86fc3a730fba
             </ul>
         </div>
     </nav>
 
     <!-- Home Section -->
+<<<<<<< HEAD
   <section class="home" id="home">
     <div class="container">
         <h1 class="main-heading">We are, your AI-Powered Meeting Assistant✨</h1>
@@ -57,6 +81,21 @@
         </div>
     </div>
 </section>
+=======
+    <section class="home" id="home">
+        <div class="container">
+            <h1 class="main-heading">We are, your AI-Powered Meeting Assistant✨</h1>
+            <p class="subtitle">Join, Transcribe & Summarize Meetings Automatically — Save Time and Stay Organized.</p>
+            <div class="cta-buttons">
+                <a href="/login/" class="btn-primary">Get Started</a>
+                <a href="#features" class="btn-secondary">Learn More</a>
+            </div>
+            <div class="hero-image">
+                <img src="{% static 'images/first_animation2.gif' %}" alt="AI Meeting Assistant">
+            </div>
+        </div>
+    </section>
+>>>>>>> 3c1b82c32efc8d5ab0d855a36c6c86fc3a730fba
 
     <!-- Features Section -->
     <section class="features" id="features">
@@ -102,6 +141,155 @@
         </div>
     </section>
 
+<<<<<<< HEAD
+=======
+    <!-- Meeting Analytics Dashboard Section -->
+    <section class="meeting-analytics" id="analytics">
+        <div class="container">
+            <h2 class="section-title" style="text-align: center;">Why Your Team Needs Our AI Assistant</h2>
+            <p class="section-subtitle">Research shows that most meeting participants struggle with focus and retention. Our AI solution addresses these critical challenges.</p>
+            
+            <div class="stats-highlight">
+                <div class="stat-card">
+                    <div class="stat-number">75%</div>
+                    <div class="stat-label">Don't Pay Attention</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">95%</div>
+                    <div class="stat-label">Lose Focus</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">91%</div>
+                    <div class="stat-label">Daydream</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">96%</div>
+                    <div class="stat-label">Miss Meetings</div>
+                </div>
+            </div>
+
+            <div class="dashboard">
+                <div class="chart-container">
+                    <div class="chart-title">Meeting Engagement Challenges</div>
+                    <div class="chart-wrapper">
+                        <canvas id="engagementChart"></canvas>
+                    </div>
+                    <div class="chart-sources">
+                        <p><strong>Sources:</strong></p>
+                        <ul>
+                            <li>75% don't pay attention: <a href="https://www.notta.ai/en/blog/meeting-statistics" target="_blank">Notta.ai</a></li>
+                            <li>91% daydream: <a href="https://www.zippia.com/advice/meeting-statistics/" target="_blank">Zippia</a></li>
+                            <li>45% feel overwhelmed: <a href="https://pumble.com/learn/communication/meeting-statistics/" target="_blank">Pumble</a></li>
+                            <li>39% doze off: <a href="https://pumble.com/learn/communication/meeting-statistics/" target="_blank">Pumble</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-title">Attention Span by Meeting Duration</div>
+                    <div class="chart-wrapper">
+                        <canvas id="attentionChart"></canvas>
+                    </div>
+                    <div class="chart-sources">
+                        <p><strong>Sources:</strong></p>
+                        <ul>
+                            <li>95% lose focus: <a href="https://www.notta.ai/en/blog/meeting-statistics" target="_blank">Notta.ai</a></li>
+                            <li>Attention rates by duration: <a href="https://pumble.com/learn/communication/meeting-statistics/" target="_blank">Pumble</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-title">Common Meeting Distractions</div>
+                    <div class="chart-wrapper">
+                        <canvas id="distractionsChart"></canvas>
+                    </div>
+                    <div class="chart-sources">
+                        <p><strong>Sources:</strong></p>
+                        <ul>
+                            <li>55% check emails & 15% do house chores: <a href="https://www.zippia.com/advice/meeting-statistics/" target="_blank">Zippia</a></li>
+                            <li>92% multitask: <a href="https://www.notta.ai/en/blog/meeting-statistics" target="_blank">Notta.ai</a></li>
+                            <li>75% use social media: <a href="https://www.zippia.com/advice/meeting-statistics/" target="_blank">Zippia</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-title">Meeting Structure Issues</div>
+                    <div class="chart-wrapper">
+                        <canvas id="structureChart"></canvas>
+                    </div>
+                    <div class="chart-sources">
+                        <p><strong>Sources:</strong></p>
+                        <ul>
+                            <li>64% recurring & 60% one-off meetings lack agendas: <a href="https://www.flowtrace.co/collaboration-blog/50-meeting-statistics" target="_blank">Flowtrace</a></li>
+                            <li>96% miss meetings: <a href="https://www.notta.ai/en/blog/meeting-statistics" target="_blank">Notta.ai</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-title">Remote Meeting Environments</div>
+                    <div class="chart-wrapper">
+                        <canvas id="environmentChart"></canvas>
+                    </div>
+                    <div class="chart-sources">
+                        <p><strong>Sources:</strong></p>
+                        <ul>
+                            <li>Remote meeting locations: <a href="https://pumble.com/learn/communication/meeting-statistics/" target="_blank">Pumble</a></li>
+                            <li>Work from home statistics: <a href="https://www.zippia.com/advice/meeting-statistics/" target="_blank">Zippia</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <div class="chart-title">Video-On Benefits</div>
+                    <div class="chart-wrapper">
+                        <canvas id="videoChart"></canvas>
+                    </div>
+                    <div class="chart-sources">
+                        <p><strong>Sources:</strong></p>
+                        <ul>
+                            <li>Video call engagement benefits: <a href="https://pumble.com/learn/communication/meeting-statistics/" target="_blank">Pumble</a></li>
+                            <li>Camera-on productivity stats: <a href="https://www.notta.ai/en/blog/meeting-statistics" target="_blank">Notta.ai</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="insights">
+                <h2>Key Insights for Meeting Software Development</h2>
+                <div class="insight-grid">
+                    <div class="insight-card">
+                        <h3>🎯 Attention Crisis</h3>
+                        <p>95% of participants lose focus during meetings, highlighting the critical need for AI-powered transcription and summarization to capture missed information.</p>
+                    </div>
+                    <div class="insight-card">
+                        <h3>⏱️ Duration Matters</h3>
+                        <p>Attention drops dramatically after 30 minutes. Automated summaries become essential for longer meetings to ensure key points aren't lost.</p>
+                    </div>
+                    <div class="insight-card">
+                        <h3>📱 Multitasking Reality</h3>
+                        <p>92% multitask during meetings. Real-time transcription helps participants stay informed while managing other tasks.</p>
+                    </div>
+                    <div class="insight-card">
+                        <h3>📝 Structure Gap</h3>
+                        <p>64% of meetings lack proper agendas. AI-powered meeting organization and follow-up summaries can fill this structural void.</p>
+                    </div>
+                    <div class="insight-card">
+                        <h3>🌍 Language Diversity</h3>
+                        <p>Supporting multiple languages like English and Bangla ensures inclusive participation and accurate transcription for diverse teams.</p>
+                    </div>
+                    <div class="insight-card">
+                        <h3>💡 Solution Opportunity</h3>
+                        <p>With 71% believing meeting info could be shared via text, your transcription software addresses a real market need.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+>>>>>>> 3c1b82c32efc8d5ab0d855a36c6c86fc3a730fba
     <!-- How It Works Section -->
     <section class="how-it-works" id="how-it-works">
         <div class="container">
@@ -196,8 +384,15 @@
                     <ul>
                         <li><a href="#home">Home</a></li>
                         <li><a href="#features">Features</a></li>
+<<<<<<< HEAD
                         <li><a href="#how-it-works">How It Works</a></li>
                         <li><a href="#about">About Us</a></li>
+=======
+                        <li><a href="#analytics">Analytics</a></li>
+                        <li><a href="#how-it-works">How It Works</a></li>
+                        <li><a href="#about">About Us</a></li>
+                        <li><a href="/pricing">Pricing</a></li>
+>>>>>>> 3c1b82c32efc8d5ab0d855a36c6c86fc3a730fba
                     </ul>
                 </div>
                 <div class="footer-contact">
