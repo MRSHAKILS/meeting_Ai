@@ -302,6 +302,7 @@
     position: relative;
     margin: 32px 0;
     text-align: center;
+    display: flex;
   }
 
   .divider::before {
@@ -391,7 +392,7 @@
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
-    animation: googleSpin 8s linear infinite;
+    animation: googleSpin 5s linear infinite;
   }
 
   @keyframes googleSpin {
@@ -767,7 +768,7 @@
       </div>
 
       <div class="divider">
-        <span>OR</span>
+        <span >OR</span>
       </div>
 
       <a href="{% provider_login_url 'google' method='oauth2' %}" class="btn-google">

@@ -30,7 +30,6 @@ body {
     width: 90%;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 20px;
 }
 
 section {
@@ -69,7 +68,8 @@ section {
     padding: 8px 0;
 }
 
-.nav-links a::after {
+/* Exclude login button from underline effect */
+.nav-links a:not(.btn-login)::after {
     content: '';
     position: absolute;
     bottom: 0;
@@ -80,7 +80,7 @@ section {
     transition: width 0.3s ease;
 }
 
-.nav-links a:hover::after {
+.nav-links a:not(.btn-login):hover::after {
     width: 100%;
 }
 
@@ -123,7 +123,7 @@ section {
 
 /* Rest of your existing CSS remains the same */
 .navbar {
-    background-color: var(--navy);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     position: sticky;
     top: 0;
@@ -134,7 +134,11 @@ section {
 .navbar .container {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+}
+
+.logoTitle {
+    display: flex;
+    justify-content: flex-start;
 }
 
 .logo {
@@ -166,24 +170,33 @@ section {
 /* LOGIN/SIGNUP BUTTON */
 /* ====================== */
 .btn-login {
-    padding: 12px 30px;
-    border-radius: 30px; /* More rounded shape */
-    background: var(--skyblue);
-    color: var(--navy);
-    font-weight: 700;
-    font-size: 1.2rem;
-    transition: var(--transition);
-    box-shadow: 0 4px 8px rgba(100, 255, 218, 0.2);
+    padding: 12px 28px !important;
+    border-radius: 25px;
+    background: linear-gradient(135deg, #35458d 0%, #764ba2 100%);
+    color: white !important;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
     border: none;
     cursor: pointer;
     white-space: nowrap;
     margin-left: 20px;
+    text-decoration: none !important;
+    display: inline-block;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-login::after {
+    display: none !important; /* Remove underline effect */
 }
 
 .btn-login:hover {
-    background: var(--white);
-    transform: translateY(-3px);
-    box-shadow: 0 8px 15px rgba(100, 255, 218, 0.3);
+    background: linear-gradient(135deg, #764ba2 0%, #35458d 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    color: white !important;
 }
 
 .menu-toggle {
@@ -493,7 +506,7 @@ section {
 
 /* Footer */
 .footer {
-    background: var(--navy);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: var(--white);
     padding: 80px 0 30px;
     margin-top: 100px;
@@ -832,8 +845,10 @@ section {
     }
     
     .btn-login {
-        padding: 12px 25px;
-        font-size: 1.1rem;
+        padding: 10px 24px !important;
+        font-size: 0.95rem;
+        margin-left: 15px;
+        border-radius: 20px;
     }
 }
 
@@ -906,9 +921,10 @@ section {
     }
     
     .btn-login {
-        padding: 10px 20px;
-        font-size: 1rem;
-        margin-left: 10px;
+        padding: 8px 20px !important;
+        font-size: 0.9rem;
+        margin-left: 0;
+        border-radius: 18px;
     }
 }
 /* Add to your CSS */
@@ -965,8 +981,13 @@ section {
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .btn-login {
-        padding: 10px 25px;
-        font-size: 1.1rem;
+        padding: 12px 24px !important;
+        font-size: 1rem;
+        margin-left: 0;
+        margin-top: 15px;
+        border-radius: 20px;
+        width: auto;
+        display: inline-block;
     }
     
     .cta-buttons {
