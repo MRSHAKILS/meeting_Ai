@@ -5,6 +5,7 @@
 {% block title %}Welcome to Meeting Agent{% endblock %}
 
 {% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
   /* Import Inter font */
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -577,6 +578,62 @@
     font-size: 10px;
     flex-shrink: 0;
   }
+
+  /* Back to home button */
+  .back-to-home {
+    position: absolute;
+    top: 30px;
+    left: 30px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255, 255, 255, 0.9);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 14px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+    z-index: 10;
+  }
+
+  .back-to-home:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+    text-decoration: none;
+    color: white;
+  }
+
+  .back-to-home i {
+    font-size: 16px;
+  }
+
+  /* Mobile responsive for back button */
+  @media (max-width: 768px) {
+    .back-to-home {
+      top: 20px;
+      left: 20px;
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .back-to-home {
+      position: static;
+      margin-bottom: 20px;
+      align-self: flex-start;
+    }
+
+    .center-screen {
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 12px;
+    }
+  }
 </style>
 
 <div class="floating-shapes">
@@ -585,6 +642,11 @@
   <div class="shape"></div>
   <div class="shape"></div>
 </div>
+
+<a href="/" class="back-to-home">
+  <i class="fas fa-arrow-left"></i>
+  Back to Landing Page
+</a>
 
 <div class="center-screen">
   <div class="card-container">
