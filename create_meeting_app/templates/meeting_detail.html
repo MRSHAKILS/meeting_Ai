@@ -551,6 +551,11 @@
             {% endif %}
             {% endwith %}
         </div>
+        {% if meeting.transcripts.first.summary %}
+         <a href="{% url 'download_summary_pdf' meeting.id %}" class="modern-button">
+                 📄 Download Summary PDF
+             </a>
+        {% endif %}
 
         <!-- Screenshots Section -->
         <div class="content-section screenshots-section">

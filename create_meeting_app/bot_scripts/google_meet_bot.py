@@ -14,141 +14,120 @@ from datetime import datetime
 
 from create_meeting_app.models import Screenshot
 
+# Install once, reuse same binary
+CHROMEDRIVER_PATH = ChromeDriverManager().install()
+
 def start_audio_recorder(meeting_id: int):
-    """
-    Launch ffmpeg recording into media/recordings/meet_<meeting_id>_<timestamp>.wav
-    Returns (subprocess.Popen, wav_path)
-    """
     os.makedirs("media/recordings", exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    wav_path = f"media/recordings/meet_{meeting_id}_{timestamp}.wav"
-
-    MONITOR = "alsa_output.pci-0000_00_1f.3.analog-stereo.monitor"
-    cmd = [
-        "ffmpeg", "-y",
-        "-f", "pulse",
-        "-i", MONITOR,
-        "-ac", "1",      # mono
-        "-ar", "16000",  # 16 kHz
-        wav_path
-    ]
+    wav_path  = f"media/recordings/meet_{meeting_id}_{timestamp}.wav"
+    MONITOR   = "alsa_output.pci-0000_00_1f.3.analog-stereo.monitor"
+    cmd = ["ffmpeg","-y","-f","pulse","-i",MONITOR,"-ac","1","-ar","16000",wav_path]
     return subprocess.Popen(cmd), wav_path
 
-
 def join_meeting(meeting_link: str, bot_name: str, meeting):
-    # 1) Chrome setup
     options = Options()
-    for arg in (
-        "--use-fake-ui-for-media-stream",
-        "--disable-infobars",
-        "--disable-popup-blocking",
-        "--no-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-blink-features=AutomationControlled",
-        "--start-maximized",
-        "--alsa-output-device=loopback",
-    ):
-        options.add_argument(arg)
+    # Core flags to auto-accept permissions & prevent popups
+    options.add_argument("--use-fake-ui-for-media-stream")
+    options.add_argument("--disable-infobars")
+    options.add_argument("--disable-popup-blocking")
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    # Linux stability flags
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
 
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=options)
+    service = Service(CHROMEDRIVER_PATH)
+    driver  = webdriver.Chrome(service=service, options=options)
+    print("📎 Chrome session_id:", driver.session_id)
 
     try:
-        # 2) Navigate & join
-        driver.get(meeting_link)
-        wait = WebDriverWait(driver, 30)
+        # Retry loading the page
+        for i in range(3):
+            try:
+                driver.get(meeting_link)
+                break
+            except Exception as e:
+                print(f"⚠️ driver.get failed (attempt {i+1}): {e}")
+                time.sleep(2)
+        else:
+            raise RuntimeError("Could not load Meet page after 3 attempts")
 
-        # Enter bot name
+        wait = WebDriverWait(driver, 30)
         name_field = wait.until(EC.presence_of_element_located(
             (By.XPATH, "//input[@placeholder='Your name']")
         ))
-        name_field.clear()
-        name_field.send_keys(bot_name)
+        name_field.clear(); name_field.send_keys(bot_name)
 
-        # Mute mic & camera
+        # Mute mic & camera if possible
         try:
-            mic_btn = wait.until(EC.element_to_be_clickable(
+            wait.until(EC.element_to_be_clickable(
                 (By.XPATH, "//button[@aria-label='Turn off microphone']")
-            ))
-            cam_btn = wait.until(EC.element_to_be_clickable(
+            )).click()
+            wait.until(EC.element_to_be_clickable(
                 (By.XPATH, "//button[@aria-label='Turn off camera']")
-            ))
-            mic_btn.click()
-            cam_btn.click()
+            )).click()
         except:
             pass
 
-        # Dismiss pop-ups
-        for btn in driver.find_elements(By.XPATH, "//button[contains(text(), 'Dismiss')]"):
+        # Dismiss any popups
+        for btn in driver.find_elements(By.XPATH, "//button[contains(text(),'Dismiss')]"):
             btn.click()
 
-        # Hit the “Join now” (or “Ask to join”) button
+        # Click Join / Ask to join
         try:
             join_btn = wait.until(EC.element_to_be_clickable(
-                (By.XPATH, "//span[contains(text(), 'Join now')]")
+                (By.XPATH, "//span[contains(text(),'Join now')]")
             ))
         except:
             join_btn = wait.until(EC.element_to_be_clickable(
-                (By.XPATH, "//span[contains(text(), 'Ask to join')]")
+                (By.XPATH, "//span[contains(text(),'Ask to join')]")
             ))
         driver.execute_script("arguments[0].click();", join_btn)
 
-        # 3) Start audio recorder—**pass meeting.id** so file is named correctly
-        recorder, wav_path = start_audio_recorder(meeting.id)
-
-        # 4) Watcher thread: on-arrival + every-30s shots + end-detection
+        # Start audio and screenshots watcher
+        recorder, _ = start_audio_recorder(meeting.id)
         stop_flag = threading.Event()
         os.makedirs("media/screenshots", exist_ok=True)
 
         def watcher():
-            # On-arrival
-            arrival = f"media/screenshots/{meeting.id}_joined.png"
-            driver.save_screenshot(arrival)
-            Screenshot.objects.create(meeting=meeting, image_path=arrival)
+            # On-arrival screenshot
+            shot0 = f"media/screenshots/{meeting.id}_joined.png"
+            driver.save_screenshot(shot0)
+            Screenshot.objects.create(meeting=meeting, image_path=shot0)
 
-            # Periodic loop
             while not stop_flag.is_set():
-                # Sleep in 1s steps for quick flag-checking
                 for _ in range(30):
-                    if stop_flag.is_set():
-                        return
+                    if stop_flag.is_set(): break
                     time.sleep(1)
 
                 try:
-                    # Detect meeting end
-                    ended = driver.find_elements(By.XPATH,
-                        "//div[contains(text(),'Call ended') "
-                        "or contains(text(),'You left the call')]"
-                    )
-                    if ended:
+                    # Detect end
+                    if driver.find_elements(By.XPATH,
+                        "//div[contains(text(),'Call ended') or contains(text(),'You left the call')]"
+                    ):
                         stop_flag.set()
+                        try: driver.quit()
+                        except: pass
                         return
 
-                    # Take next shot
-                    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    # Periodic screenshot
+                    ts   = datetime.now().strftime("%Y%m%d_%H%M%S")
                     shot = f"media/screenshots/{meeting.id}_{ts}.png"
                     driver.save_screenshot(shot)
                     Screenshot.objects.create(meeting=meeting, image_path=shot)
-
                 except WebDriverException:
                     stop_flag.set()
                     return
 
-        thread = threading.Thread(target=watcher, daemon=True)
-        thread.start()
-
-        # 5) Wait for meeting to end
+        threading.Thread(target=watcher, daemon=True).start()
         stop_flag.wait()
 
     finally:
-        # 6) Cleanup
-        try:    recorder.terminate()
+        try: recorder.terminate()
         except: pass
-        try:    driver.quit()
-        except: pass
-
+        # Browser quit is handled in watcher
 
 # Quick local test
 if __name__ == "__main__":
     dummy = type("M", (), {"id": 0})
-    join_meeting("https://meet.google.com/uou-rsvo-epg", "TestBot", dummy)
+    join_meeting("https://meet.google.com/xyz", "TestBot", dummy)

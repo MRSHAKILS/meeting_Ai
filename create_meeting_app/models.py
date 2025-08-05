@@ -40,3 +40,16 @@ class Screenshot(models.Model):
 
     def __str__(self):
         return f"Screenshot for {self.meeting} at {self.created}"
+
+class TranscriptSegment(models.Model):
+    transcript = models.ForeignKey(
+        Transcript,
+        on_delete=models.CASCADE,
+        related_name='segments'
+    )
+    text       = models.TextField()
+    start_time = models.DurationField()  # from start of transcript
+    end_time   = models.DurationField()
+
+    def __str__(self):
+        return f"[{self.start_time}-{self.end_time}] {self.text[:30]}…"

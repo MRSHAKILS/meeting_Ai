@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Meeting Summary</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .summary-block {
+            margin-bottom: 20px;
+            page-break-inside: avoid;
+        }
+        .summary-line {
+            font-weight: bold;
+        }
+        .screenshot {
+            max-width: 100%;
+            max-height: 300px;
+            display: block;
+            margin-top: 10px;
+        }
+        .footer {
+            font-size: 12px;
+            color: #666;
+            margin-top: 50px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Meeting Summary: {{ meeting.name }}</h1>
+
+    {% for summary_line, screenshot_path in matches %}
+        <div class="summary-block">
+            <div class="summary-line">• {{ summary_line }}</div>
+            <img class="screenshot" src="{{ screenshot_path }}" alt="Screenshot">
+        </div>
+    {% endfor %}
+
+    <div class="footer">
+        Meeting ID: {{ meeting.id }} • Date: {{ meeting.created_at|date:"Y-m-d H:i" }}
+    </div>
+</body>
+</html>
