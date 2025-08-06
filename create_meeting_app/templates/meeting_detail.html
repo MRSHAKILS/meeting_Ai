@@ -534,11 +534,11 @@
 }
 </style>
 
-<!-- Include jsPDF library -->
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <div class="meeting-container">
-    <!-- Meeting Header -->
+    <!--  Header -->
     <div class="meeting-header">
         <h1 class="meeting-title">{{ meeting.name }}</h1>
         <div class="meeting-info">
@@ -686,7 +686,7 @@
         </div>
     </div>
     
-    <!-- PDF Export Section - Only show when summary exists and at the bottom -->
+    <!-- PDF Section -->
     {% with meeting.transcripts.all as t_list %}
     {% if t_list %}
         {% with t_list.0 as first_trans %}
@@ -776,14 +776,14 @@ function goToSlide(index) {
     }
 }
 
-// Auto-slide functionality (optional)
+// Auto-slide 
 let autoSlideInterval;
 
 function startAutoSlide() {
     if (totalSlides > 1) {
         autoSlideInterval = setInterval(() => {
             changeSlide(1);
-        }, 5000); // Change slide every 5 seconds
+        }, 5000); 
     }
 }
 
@@ -793,7 +793,7 @@ function stopAutoSlide() {
     }
 }
 
-// Keyboard navigation
+// Keyboard nav
 document.addEventListener('keydown', function(e) {
     if (e.key === 'ArrowLeft') {
         changeSlide(-1);
@@ -802,7 +802,7 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// Touch/swipe support for mobile
+// Touch/swipe mobile
 let touchStartX = 0;
 let touchEndX = 0;
 
@@ -821,9 +821,9 @@ function handleSwipe() {
     
     if (Math.abs(diff) > swipeThreshold) {
         if (diff > 0) {
-            changeSlide(1); // Swipe left, go to next slide
+            changeSlide(1); 
         } else {
-            changeSlide(-1); // Swipe right, go to previous slide
+            changeSlide(-1); 
         }
     }
 }
@@ -869,7 +869,7 @@ function summarize(id) {
     });
 }
 
-// PDF Generation Function
+// PDF Generate
 async function generatePDF() {
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p', 'mm', 'a4');
@@ -884,7 +884,7 @@ async function generatePDF() {
     pdfButton.disabled = true;
     
     try {
-        // PDF Configuration
+        
         const pageWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
         const margin = 20;
