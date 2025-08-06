@@ -170,6 +170,16 @@
     text-decoration: none;
     position: relative;
     overflow: hidden;
+    margin-right: 15px;
+}
+
+.modern-button.pdf-button {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    box-shadow: 0 4px 15px rgba(220, 38, 38, 0.3);
+}
+
+.modern-button.pdf-button:hover {
+    box-shadow: 0 8px 25px rgba(220, 38, 38, 0.4);
 }
 
 .modern-button::before {
@@ -195,6 +205,13 @@
 .modern-button:active {
     transform: translateY(0);
     box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+}
+
+.modern-button:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 
 .summary-card {
@@ -355,6 +372,51 @@
     opacity: 0.5;
 }
 
+.button-group {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.pdf-progress {
+    display: none;
+    background: #f0f9ff;
+    border: 1px solid #7dd3fc;
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 15px;
+    text-align: center;
+}
+
+.pdf-progress.show {
+    display: block;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e0f2fe;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 15px 0;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #2563eb, #1d4ed8);
+    width: 0%;
+    transition: width 0.3s ease;
+    border-radius: 4px;
+}
+
+.progress-text {
+    color: #0c4a6e;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
 /* Animations */
 @keyframes slideInFromTop {
     from {
@@ -444,6 +506,16 @@
     .meeting-container {
         padding: 15px;
     }
+    
+    .button-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .modern-button {
+        margin-right: 0;
+        margin-bottom: 10px;
+    }
 }
 
 @media (max-width: 480px) {
@@ -461,6 +533,9 @@
     }
 }
 </style>
+
+<!-- Include jsPDF library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <div class="meeting-container">
     <!-- Meeting Header -->
@@ -495,7 +570,7 @@
             
             <div class="transcript-container">
                 {% for seg in segments %}
-                <div class="transcript-segment">
+                <div class="transcript-segment" data-timestamp="{{ seg.timestamp }}">
                     {% if seg.speaker %}
                     <p class="speaker-name">{{ seg.speaker }}</p>
                     {% endif %}
@@ -509,12 +584,14 @@
                 {% endfor %}
             </div>
             
-            <form method="POST" action="{% url 'transcribe_meeting' meeting.id %}">
-                {% csrf_token %}
-                <button type="submit" class="modern-button">
-                    📝 Generate Transcript
-                </button>
-            </form>
+            <div class="button-group">
+                <form method="POST" action="{% url 'transcribe_meeting' meeting.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="modern-button">
+                        📝 Generate Transcript
+                    </button>
+                </form>
+            </div>
         </div>
 
         <!-- Summarize Section -->
@@ -566,7 +643,7 @@
                 <div class="slider-container">
                     <div class="slider-track" id="sliderTrack">
                         {% for shot in screenshots %}
-                        <div class="slide">
+                        <div class="slide" data-timestamp="{{ shot.timestamp }}">
                             <img src="/{{ shot.image_path }}" alt="Screenshot at {{ shot.created }}">
                             <div class="slide-overlay">
                                 <strong>Captured:</strong> {{ shot.created|date:"M d, Y H:i" }}
@@ -608,6 +685,43 @@
             {% endif %}
         </div>
     </div>
+    
+    <!-- PDF Export Section - Only show when summary exists and at the bottom -->
+    {% with meeting.transcripts.all as t_list %}
+    {% if t_list %}
+        {% with t_list.0 as first_trans %}
+            {% if first_trans.summary %}
+            <div class="content-section" style="margin-top: 30px;">
+                <h2 class="section-title">
+                    <svg class="section-icon" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 10.586l4.707-4.707 1.414 1.414L13.414 12l4.707 4.707-1.414 1.414L12 13.414l-4.707 4.707-1.414-1.414L10.586 12 5.879 7.293l1.414-1.414L12 10.586zM3 18h18v2H3v-2z"/>
+                    </svg>
+                    Export Meeting Report
+                </h2>
+                
+                <p style="color: #64748b; margin-bottom: 25px; line-height: 1.6;">
+                    Generate a comprehensive PDF report including the meeting transcript with timestamps, 
+                    relevant screenshots, and AI summary. Perfect for sharing or archival purposes.
+                </p>
+                
+                <div class="button-group">
+                    <button onclick="generatePDF()" class="modern-button pdf-button" id="pdfButton">
+                        📄 Save as PDF
+                    </button>
+                </div>
+                
+                <!-- Progress indicator -->
+                <div id="pdfProgress" class="pdf-progress">
+                    <div class="progress-text" id="progressText">Preparing PDF...</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        {% endwith %}
+    {% endif %}
+    {% endwith %}
 </div>
 
 <script>
@@ -753,6 +867,390 @@ function summarize(id) {
         button.innerHTML = originalText;
         button.disabled = false;
     });
+}
+
+// PDF Generation Function
+async function generatePDF() {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    
+    // Show progress
+    const progressDiv = document.getElementById('pdfProgress');
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    const pdfButton = document.getElementById('pdfButton');
+    
+    progressDiv.classList.add('show');
+    pdfButton.disabled = true;
+    
+    try {
+        // PDF Configuration
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const margin = 20;
+        const contentWidth = pageWidth - (margin * 2);
+        let yPosition = margin;
+        
+        // Helper function to add new page if needed
+        function checkNewPage(requiredHeight = 20) {
+            if (yPosition + requiredHeight > pageHeight - margin) {
+                pdf.addPage();
+                yPosition = margin;
+                return true;
+            }
+            return false;
+        }
+        
+        // Helper function to wrap text
+        function wrapText(text, maxWidth, fontSize = 10) {
+            pdf.setFontSize(fontSize);
+            const words = text.split(' ');
+            const lines = [];
+            let currentLine = '';
+            
+            for (const word of words) {
+                const testLine = currentLine + (currentLine ? ' ' : '') + word;
+                const textWidth = pdf.getStringUnitWidth(testLine) * fontSize / pdf.internal.scaleFactor;
+                
+                if (textWidth > maxWidth && currentLine) {
+                    lines.push(currentLine);
+                    currentLine = word;
+                } else {
+                    currentLine = testLine;
+                }
+            }
+            
+            if (currentLine) {
+                lines.push(currentLine);
+            }
+            
+            return lines;
+        }
+        
+        // Update progress
+        progressText.textContent = 'Creating PDF header...';
+        progressFill.style.width = '10%';
+        
+        // Title Page
+        pdf.setFontSize(24);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Meeting Report', pageWidth / 2, yPosition + 20, { align: 'center' });
+        
+        yPosition += 35;
+        pdf.setFontSize(18);
+        pdf.text('{{ meeting.name }}', pageWidth / 2, yPosition, { align: 'center' });
+        
+        yPosition += 20;
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text('Bot: {{ meeting.bot_name }}', pageWidth / 2, yPosition, { align: 'center' });
+        yPosition += 8;
+        pdf.text('Join Time: {{ meeting.join_time }}', pageWidth / 2, yPosition, { align: 'center' });
+        yPosition += 8;
+        pdf.text('Generated: ' + new Date().toLocaleString(), pageWidth / 2, yPosition, { align: 'center' });
+        
+        // Add a line separator
+        yPosition += 20;
+        pdf.setDrawColor(66, 139, 202);
+        pdf.setLineWidth(0.5);
+        pdf.line(margin, yPosition, pageWidth - margin, yPosition);
+        yPosition += 20;
+        
+        // Update progress
+        progressText.textContent = 'Processing transcript segments...';
+        progressFill.style.width = '20%';
+        
+        // Get transcript segments and screenshots data
+        const transcriptSegments = [];
+        const screenshots = [];
+        
+        // Collect transcript data
+        document.querySelectorAll('.transcript-segment').forEach(segment => {
+            const speaker = segment.querySelector('.speaker-name')?.textContent || 'Unknown';
+            const text = segment.querySelector('.transcript-text')?.textContent || '';
+            const timestamp = segment.getAttribute('data-timestamp') || '';
+            
+            transcriptSegments.push({
+                speaker: speaker,
+                text: text,
+                timestamp: timestamp
+            });
+        });
+        
+        // Collect screenshot data
+        document.querySelectorAll('.slide').forEach((slide, index) => {
+            const img = slide.querySelector('img');
+            const timestamp = slide.getAttribute('data-timestamp') || '';
+            const overlay = slide.querySelector('.slide-overlay')?.textContent || '';
+            
+            if (img) {
+                screenshots.push({
+                    src: img.src,
+                    timestamp: timestamp,
+                    caption: overlay,
+                    index: index
+                });
+            }
+        });
+        
+        // Function to find closest screenshot for a transcript segment
+        function findClosestScreenshot(transcriptTimestamp) {
+            if (!transcriptTimestamp || screenshots.length === 0) return null;
+            
+            let closest = null;
+            let minDiff = Infinity;
+            
+            screenshots.forEach(screenshot => {
+                if (screenshot.timestamp) {
+                    const diff = Math.abs(new Date(transcriptTimestamp) - new Date(screenshot.timestamp));
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        closest = screenshot;
+                    }
+                }
+            });
+            
+            return closest;
+        }
+        
+        // Add Transcript with Screenshots Section
+        checkNewPage(30);
+        pdf.setFontSize(16);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Meeting Transcript', margin, yPosition);
+        yPosition += 15;
+        
+        progressText.textContent = 'Adding transcript segments...';
+        
+        for (let i = 0; i < transcriptSegments.length; i++) {
+            const segment = transcriptSegments[i];
+            const progress = 20 + (i / transcriptSegments.length) * 40;
+            progressFill.style.width = progress + '%';
+            
+            checkNewPage(40);
+            
+            // Add speaker name
+            pdf.setFontSize(11);
+            pdf.setFont('helvetica', 'bold');
+            pdf.setTextColor(37, 99, 235); // Blue color
+            pdf.text(segment.speaker, margin, yPosition);
+            yPosition += 8;
+            
+            // Add timestamp if available
+            if (segment.timestamp) {
+                pdf.setFontSize(9);
+                pdf.setFont('helvetica', 'italic');
+                pdf.setTextColor(100, 116, 139); // Gray color
+                pdf.text('Time: ' + new Date(segment.timestamp).toLocaleTimeString(), margin, yPosition);
+                yPosition += 6;
+            }
+            
+            // Add transcript text
+            pdf.setFontSize(10);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setTextColor(0, 0, 0); // Black color
+            
+            const textLines = wrapText(segment.text, contentWidth - 10, 10);
+            textLines.forEach(line => {
+                checkNewPage(8);
+                pdf.text(line, margin + 5, yPosition);
+                yPosition += 6;
+            });
+            
+            // Try to add relevant screenshot
+            const closestScreenshot = findClosestScreenshot(segment.timestamp);
+            if (closestScreenshot && i % 3 === 0) { // Add screenshot every 3rd segment to avoid cluttering
+                try {
+                    checkNewPage(80);
+                    
+                    // Create a canvas to load and resize the image
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const img = new Image();
+                    
+                    // Wait for image to load
+                    await new Promise((resolve, reject) => {
+                        img.onload = resolve;
+                        img.onerror = reject;
+                        img.crossOrigin = 'anonymous';
+                        img.src = closestScreenshot.src;
+                    });
+                    
+                    // Calculate dimensions
+                    const maxWidth = contentWidth - 20;
+                    const maxHeight = 60;
+                    let imgWidth = img.width;
+                    let imgHeight = img.height;
+                    
+                    // Scale down if necessary
+                    if (imgWidth > maxWidth) {
+                        imgHeight = (imgHeight * maxWidth) / imgWidth;
+                        imgWidth = maxWidth;
+                    }
+                    if (imgHeight > maxHeight) {
+                        imgWidth = (imgWidth * maxHeight) / imgHeight;
+                        imgHeight = maxHeight;
+                    }
+                    
+                    // Set canvas size and draw image
+                    canvas.width = imgWidth;
+                    canvas.height = imgHeight;
+                    ctx.drawImage(img, 0, 0, imgWidth, imgHeight);
+                    
+                    // Add to PDF
+                    const imgData = canvas.toDataURL('image/jpeg', 0.7);
+                    pdf.addImage(imgData, 'JPEG', margin + 10, yPosition, imgWidth * 0.75, imgHeight * 0.75);
+                    yPosition += (imgHeight * 0.75) + 5;
+                    
+                    // Add caption
+                    pdf.setFontSize(8);
+                    pdf.setFont('helvetica', 'italic');
+                    pdf.setTextColor(100, 116, 139);
+                    const captionLines = wrapText('Screenshot: ' + closestScreenshot.caption, maxWidth, 8);
+                    captionLines.forEach(line => {
+                        pdf.text(line, margin + 10, yPosition);
+                        yPosition += 5;
+                    });
+                    
+                } catch (error) {
+                    console.log('Could not add screenshot:', error);
+                }
+            }
+            
+            yPosition += 10; // Space between segments
+        }
+        
+        // Update progress
+        progressText.textContent = 'Adding meeting summary...';
+        progressFill.style.width = '80%';
+        
+        // Add Summary Section
+        checkNewPage(50);
+        yPosition += 10;
+        pdf.setFontSize(16);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(0, 0, 0);
+        pdf.text('Meeting Summary', margin, yPosition);
+        yPosition += 15;
+        
+        // Add summary content
+        const summaryText = document.querySelector('.summary-text')?.textContent || 'No summary available';
+        pdf.setFontSize(11);
+        pdf.setFont('helvetica', 'normal');
+        
+        const summaryLines = wrapText(summaryText, contentWidth, 11);
+        summaryLines.forEach(line => {
+            checkNewPage(8);
+            pdf.text(line, margin, yPosition);
+            yPosition += 7;
+        });
+        
+        // Update progress
+        progressText.textContent = 'Adding remaining screenshots...';
+        progressFill.style.width = '90%';
+        
+        // Add Screenshots Appendix (if any screenshots weren't included above)
+        if (screenshots.length > 0) {
+            checkNewPage(50);
+            yPosition += 20;
+            pdf.setFontSize(16);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Screenshots Appendix', margin, yPosition);
+            yPosition += 15;
+            
+            for (let i = 0; i < Math.min(screenshots.length, 5); i++) { // Limit to 5 screenshots
+                const screenshot = screenshots[i];
+                
+                try {
+                    checkNewPage(100);
+                    
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const img = new Image();
+                    
+                    await new Promise((resolve, reject) => {
+                        img.onload = resolve;
+                        img.onerror = reject;
+                        img.crossOrigin = 'anonymous';
+                        img.src = screenshot.src;
+                    });
+                    
+                    // Calculate dimensions for appendix (larger images)
+                    const maxWidth = contentWidth;
+                    const maxHeight = 100;
+                    let imgWidth = img.width;
+                    let imgHeight = img.height;
+                    
+                    if (imgWidth > maxWidth) {
+                        imgHeight = (imgHeight * maxWidth) / imgWidth;
+                        imgWidth = maxWidth;
+                    }
+                    if (imgHeight > maxHeight) {
+                        imgWidth = (imgWidth * maxHeight) / imgHeight;
+                        imgHeight = maxHeight;
+                    }
+                    
+                    canvas.width = imgWidth;
+                    canvas.height = imgHeight;
+                    ctx.drawImage(img, 0, 0, imgWidth, imgHeight);
+                    
+                    const imgData = canvas.toDataURL('image/jpeg', 0.8);
+                    pdf.addImage(imgData, 'JPEG', margin, yPosition, imgWidth * 0.75, imgHeight * 0.75);
+                    yPosition += (imgHeight * 0.75) + 5;
+                    
+                    // Add caption
+                    pdf.setFontSize(9);
+                    pdf.setFont('helvetica', 'italic');
+                    pdf.setTextColor(100, 116, 139);
+                    const captionLines = wrapText(screenshot.caption, contentWidth, 9);
+                    captionLines.forEach(line => {
+                        pdf.text(line, margin, yPosition);
+                        yPosition += 6;
+                    });
+                    
+                    yPosition += 15;
+                    
+                } catch (error) {
+                    console.log('Could not add screenshot to appendix:', error);
+                }
+            }
+        }
+        
+        // Add footer to all pages
+        const totalPages = pdf.internal.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+            pdf.setPage(i);
+            pdf.setFontSize(8);
+            pdf.setFont('helvetica', 'normal');
+            pdf.setTextColor(100, 116, 139);
+            pdf.text('Meeting Report - {{ meeting.name }}', margin, pageHeight - 10);
+            pdf.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
+        }
+        
+        // Update progress
+        progressText.textContent = 'Finalizing PDF...';
+        progressFill.style.width = '100%';
+        
+        // Save the PDF
+        const filename = '{{ meeting.name }}'.replace(/[^a-z0-9]/gi, '_').toLowerCase() + '_meeting_report.pdf';
+        pdf.save(filename);
+        
+        // Hide progress and re-enable button
+        setTimeout(() => {
+            progressDiv.classList.remove('show');
+            pdfButton.disabled = false;
+            progressFill.style.width = '0%';
+        }, 1000);
+        
+    } catch (error) {
+        console.error('PDF generation error:', error);
+        alert('Error generating PDF: ' + error.message);
+        
+        // Hide progress and re-enable button
+        progressDiv.classList.remove('show');
+        pdfButton.disabled = false;
+        progressFill.style.width = '0%';
+    }
 }
 
 // Add smooth page transitions
