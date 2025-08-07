@@ -113,21 +113,44 @@ def summarize_transcript(request, transcript_id):
     prompt = f"""
 You are a highly intelligent AI assistant designed to take unstructured meeting transcripts and produce clear, detailed, and professional summaries.
 
-Your summary **must be helpful to someone who didn’t attend the meeting**. Do not say “None” if something isn’t clear — try your best to infer reasonable insights.
+Your summary must be helpful to someone who didn’t attend the meeting.
 
-Please generate a concise summary that includes:
+Please generate a structured summary **in valid HTML format** using the following structure and tags:
 
-- 📝 1.Topics Discussed: What was talked about? What issues or themes came up?
-- ✅ 2.Decisions Made: What was agreed upon or concluded?
-- 📌 3.Action Items: What needs to be done next? Who is responsible?
-- ⏳ 4.Deadlines / Next Steps: Any follow-up meetings, tasks, or due dates?
-- 🧠 5.Overall Summary: In 1–2 sentences, what was the meeting about?
+<h3>📝 Topics Discussed</h3>
+<ul>
+  <li>...</li>
+  <li>...</li>
+</ul>
 
-Format the output with proper headings and bullet points.
+<h3>✅ Decisions Made</h3>
+<ul>
+  <li>...</li>
+</ul>
+
+<h3>📌 Action Items</h3>
+<ul>
+  <li>...</li>
+</ul>
+
+<h3>⏳ Deadlines / Next Steps</h3>
+<ul>
+  <li>...</li>
+</ul>
+
+<h3>🧠 Overall Summary</h3>
+<p>...</p>
+
+Make sure:
+- The HTML is clean and well-formed.
+- Don’t use Markdown.
+- Use <ul> and <li> tags for lists.
+- No <style> tags or inline CSS.
 
 Transcript:
 {translated_text}
 """.strip()
+
 
 
     try:

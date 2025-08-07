@@ -1,50 +1,28 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <title>Meeting Summary</title>
     <style>
-        body {
-            font-family: sans-serif;
-            padding: 20px;
-            line-height: 1.6;
-        }
-        h1 {
-            font-size: 24px;
-            margin-bottom: 10px;
-        }
-        .summary-block {
-            margin-bottom: 20px;
-            page-break-inside: avoid;
-        }
-        .summary-line {
-            font-weight: bold;
-        }
-        .screenshot {
-            max-width: 100%;
-            max-height: 300px;
-            display: block;
-            margin-top: 10px;
-        }
-        .footer {
-            font-size: 12px;
-            color: #666;
-            margin-top: 50px;
-        }
+        body { font-family: sans-serif; margin: 30px; }
+        .point { margin-bottom: 30px; }
+        img { width: 100%; border: 1px solid #ccc; margin-top: 10px; }
     </style>
 </head>
 <body>
     <h1>Meeting Summary: {{ meeting.name }}</h1>
+    <p><strong>Meeting ID:</strong> {{ meeting.id }} • <strong>Date:</strong> {{ meeting.created_at }}</p>
 
-    {% for summary_line, screenshot_path in matches %}
-        <div class="summary-block">
-            <div class="summary-line">• {{ summary_line }}</div>
-            <img class="screenshot" src="{{ screenshot_path }}" alt="Screenshot">
+    {% for item in pdf_data %}
+        <div class="point">
+            <p><strong>{{ forloop.counter }}.</strong> {{ item.point }}</p>
+            {% if item.screenshot %}
+  <img src="{{ item.screenshot }}">
+{% else %}
+  <p style="color: grey;">No screenshot found for this point 🫥</p>
+{% endif %}
+
         </div>
     {% endfor %}
-
-    <div class="footer">
-        Meeting ID: {{ meeting.id }} • Date: {{ meeting.created_at|date:"Y-m-d H:i" }}
-    </div>
 </body>
 </html>

@@ -530,9 +530,10 @@
             {% if t_list %}
                 {% with t_list.0 as first_trans %}
                     {% if first_trans.summary %}
-                    <div class="summary-card">
-                        <p class="summary-text">{{ first_trans.summary }}</p>
+                    <div class="summary-text prose max-w-none">
+                        {{ first_trans.summary|safe }}
                     </div>
+
                     {% else %}
                     <div class="empty-state">
                         <div class="empty-state-icon">💡</div>
