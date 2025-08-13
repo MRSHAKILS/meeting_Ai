@@ -5,6 +5,7 @@ import datetime
 from google.cloud import speech_v1p1beta1 as speech
 from google.cloud import storage
 from deepmultilingualpunctuation import PunctuationModel
+from create_meeting_app.utils.tts import generate_tts_and_save
 
 GCS_BUCKET = os.getenv('GCS_BUCKET_NAME')
 KEY_PATH = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
@@ -118,6 +119,16 @@ class Command(BaseCommand):
                     raw_text=raw,
                     text=final_text
                 )
+
+                # Generate transcript audio in Bangla
+                generate_tts_and_save(final_text, 'bn', transcript.transcript_audio, transcript, f"transcript_{mid}.mp3")
+
+                # If summary already exists, also generate summary audio
+                if transcript.summary:
+                    generate_tts_and_save(transcript.summary, 'bn', transcript.summary_audio, transcript, f"summary_{mid}.mp3")
+
+                transcript.save()
+
 
                 # Segment by pauses
                 for result in resp.results:

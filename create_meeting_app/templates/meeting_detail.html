@@ -484,8 +484,9 @@
 
     <!-- Content Grid -->
     <div class="content-grid">
+
         <!-- Transcript Section -->
-        <div class="content-section">
+        <div id="transcript-section" class="content-section">
             <h2 class="section-title">
                 <svg class="section-icon" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -495,68 +496,79 @@
             
             <div class="transcript-container">
                 {% for seg in segments %}
-                <div class="transcript-segment">
-                    {% if seg.speaker %}
-                    <p class="speaker-name">{{ seg.speaker }}</p>
-                    {% endif %}
-                    <p class="transcript-text">{{ seg.text }}</p>
-                </div>
+                    <div class="transcript-segment">
+                        {% if seg.speaker %}
+                        <p class="speaker-name">{{ seg.speaker }}</p>
+                        {% endif %}
+                        <p class="transcript-text">{{ seg.text }}</p>
+                    </div>
                 {% empty %}
-                <div class="empty-state">
-                    <div class="empty-state-icon">📝</div>
-                    <p>No transcript available yet.</p>
-                </div>
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📝</div>
+                        <p>No transcript available yet.</p>
+                    </div>
                 {% endfor %}
             </div>
-            
+
             <form method="POST" action="{% url 'transcribe_meeting' meeting.id %}">
                 {% csrf_token %}
                 <button type="submit" class="modern-button">
                     📝 Generate Transcript
                 </button>
             </form>
+
+            {% with meeting.transcripts.first as first_trans %}
+                {% if first_trans.transcript_audio %}
+                <h4>🔊 Transcript Audio</h4>
+                <audio controls>
+                    <source src="{{ first_trans.transcript_audio.url }}" type="audio/mpeg">
+                </audio>
+                {% endif %}
+            {% endwith %}
         </div>
 
-        <!-- Summarize Section -->
-        <div class="content-section">
+        <!-- Summary Section -->
+        <div id="summary-section" class="content-section">
             <h2 class="section-title">
                 <svg class="section-icon" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
                 </svg>
                 AI Summary
             </h2>
-            
-            {% with meeting.transcripts.all as t_list %}
-            {% if t_list %}
-                {% with t_list.0 as first_trans %}
-                    {% if first_trans.summary %}
+
+            {% with meeting.transcripts.first as first_trans %}
+                {% if first_trans %}
                     <div class="summary-text prose max-w-none">
-                        {{ first_trans.summary|safe }}
+                        {% if first_trans.summary %}
+                            {{ first_trans.summary|safe }}
+                        {% else %}
+                            <div class="empty-state">
+                                <div class="empty-state-icon">💡</div>
+                                <p>Ready to generate summary</p>
+                                <button onclick="summarize(event, {{ first_trans.id }})" class="modern-button">
+                                    💡 Summarize Transcript
+                                </button>
+                            </div>
+                        {% endif %}
                     </div>
 
-                    {% else %}
-                    <div class="empty-state">
-                        <div class="empty-state-icon">💡</div>
-                        <p>Ready to generate summary</p>
-                        <button onclick="summarize({{ first_trans.id }})" class="modern-button">
-                            💡 Summarize Transcript
-                        </button>
-                    </div>
+                    {% if first_trans.summary_audio %}
+                        <div id="summary-audio">
+                            <h4>🔊 Summary Audio</h4>
+                            <audio controls>
+                                <source src="{{ first_trans.summary_audio.url }}" type="audio/mpeg">
+                            </audio>
+                        </div>
                     {% endif %}
-                {% endwith %}
-            {% else %}
-            <div class="empty-state">
-                <div class="empty-state-icon">⏳</div>
-                <p>Generate transcript first to create summary</p>
-            </div>
-            {% endif %}
+                {% endif %}
             {% endwith %}
+
+            {% if meeting.transcripts.first.summary %}
+                <a href="{% url 'download_summary_pdf' meeting.id %}" class="modern-button">
+                    📄 Download Summary PDF
+                </a>
+            {% endif %}
         </div>
-        {% if meeting.transcripts.first.summary %}
-         <a href="{% url 'download_summary_pdf' meeting.id %}" class="modern-button">
-                 📄 Download Summary PDF
-             </a>
-        {% endif %}
 
         <!-- Screenshots Section -->
         <div class="content-section screenshots-section">
@@ -566,101 +578,92 @@
                 </svg>
                 Screenshots & Slides
             </h2>
-            
+
             {% if screenshots %}
-            <div class="screenshots-slider">
-                <div class="slider-container">
-                    <div class="slider-track" id="sliderTrack">
-                        {% for shot in screenshots %}
-                        <div class="slide">
-                            <img src="/{{ shot.image_path }}" alt="Screenshot at {{ shot.created }}">
-                            <div class="slide-overlay">
-                                <strong>Captured:</strong> {{ shot.created|date:"M d, Y H:i" }}
+                <div class="screenshots-slider">
+                    <div class="slider-container">
+                        <div class="slider-track" id="sliderTrack">
+                            {% for shot in screenshots %}
+                            <div class="slide">
+                                <img src="/{{ shot.image_path }}" alt="Screenshot at {{ shot.created }}">
+                                <div class="slide-overlay">
+                                    <strong>Captured:</strong> {{ shot.created|date:"M d, Y H:i" }}
+                                </div>
                             </div>
+                            {% endfor %}
                         </div>
+
+                        {% if screenshots|length > 1 %}
+                        <button class="slider-nav prev" onclick="changeSlide(-1)">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"/>
+                            </svg>
+                        </button>
+                        <button class="slider-nav next" onclick="changeSlide(1)">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/>
+                            </svg>
+                        </button>
+                        {% endif %}
+                    </div>
+
+                    {% if screenshots|length > 1 %}
+                    <div class="slider-dots">
+                        {% for shot in screenshots %}
+                        <button class="dot{% if forloop.first %} active{% endif %}" onclick="goToSlide({{ forloop.counter0 }})"></button>
                         {% endfor %}
                     </div>
-                    
-                    {% if screenshots|length > 1 %}
-                    <button class="slider-nav prev" onclick="changeSlide(-1)">
-                        <svg fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"/>
-                        </svg>
-                    </button>
-                    <button class="slider-nav next" onclick="changeSlide(1)">
-                        <svg fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/>
-                        </svg>
-                    </button>
+                    <div class="slider-counter">
+                        <span id="currentSlide">1</span> / <span id="totalSlides">{{ screenshots|length }}</span>
+                    </div>
                     {% endif %}
                 </div>
-                
-                {% if screenshots|length > 1 %}
-                <div class="slider-dots">
-                    {% for shot in screenshots %}
-                    <button class="dot{% if forloop.first %} active{% endif %}" onclick="goToSlide({{ forloop.counter0 }})"></button>
-                    {% endfor %}
-                </div>
-                <div class="slider-counter">
-                    <span id="currentSlide">1</span> / <span id="totalSlides">{{ screenshots|length }}</span>
-                </div>
-                {% endif %}
-            </div>
             {% else %}
-            <div class="empty-state">
-                <div class="empty-state-icon">📸</div>
-                <p>No screenshots captured yet.</p>
-            </div>
+                <div class="empty-state">
+                    <div class="empty-state-icon">📸</div>
+                    <p>No screenshots captured yet.</p>
+                </div>
             {% endif %}
         </div>
+
     </div>
 </div>
 
 <script>
-// Slider functionality
+const csrf_token = '{{ csrf_token }}';
+
+// ---------- Slider logic ----------
 let currentSlideIndex = 0;
 const slides = document.querySelectorAll('.slide');
 const totalSlides = slides.length;
 
 function updateSliderPosition() {
     const track = document.getElementById('sliderTrack');
-    if (track) {
-        track.style.transform = `translateX(-${currentSlideIndex * 100}%)`;
-    }
+    if(track) track.style.transform = `translateX(-${currentSlideIndex * 100}%)`;
 }
 
 function updateDots() {
     const dots = document.querySelectorAll('.dot');
-    dots.forEach((dot, index) => {
-        dot.classList.toggle('active', index === currentSlideIndex);
-    });
+    dots.forEach((dot,index) => dot.classList.toggle('active', index === currentSlideIndex));
 }
 
 function updateCounter() {
-    const currentSlideElement = document.getElementById('currentSlide');
-    if (currentSlideElement) {
-        currentSlideElement.textContent = currentSlideIndex + 1;
-    }
+    const currentSlideEl = document.getElementById('currentSlide');
+    if(currentSlideEl) currentSlideEl.textContent = currentSlideIndex + 1;
 }
 
 function changeSlide(direction) {
-    if (totalSlides <= 1) return;
-    
+    if(totalSlides <= 1) return;
     currentSlideIndex += direction;
-    
-    if (currentSlideIndex >= totalSlides) {
-        currentSlideIndex = 0;
-    } else if (currentSlideIndex < 0) {
-        currentSlideIndex = totalSlides - 1;
-    }
-    
+    if(currentSlideIndex >= totalSlides) currentSlideIndex = 0;
+    else if(currentSlideIndex < 0) currentSlideIndex = totalSlides - 1;
     updateSliderPosition();
     updateDots();
     updateCounter();
 }
 
 function goToSlide(index) {
-    if (index >= 0 && index < totalSlides) {
+    if(index >= 0 && index < totalSlides) {
         currentSlideIndex = index;
         updateSliderPosition();
         updateDots();
@@ -668,119 +671,92 @@ function goToSlide(index) {
     }
 }
 
-// Auto-slide functionality (optional)
 let autoSlideInterval;
-
 function startAutoSlide() {
-    if (totalSlides > 1) {
-        autoSlideInterval = setInterval(() => {
-            changeSlide(1);
-        }, 5000); // Change slide every 5 seconds
-    }
+    if(totalSlides>1) autoSlideInterval = setInterval(()=>changeSlide(1),5000);
 }
-
 function stopAutoSlide() {
-    if (autoSlideInterval) {
-        clearInterval(autoSlideInterval);
-    }
+    if(autoSlideInterval) clearInterval(autoSlideInterval);
 }
 
-// Keyboard navigation
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'ArrowLeft') {
-        changeSlide(-1);
-    } else if (e.key === 'ArrowRight') {
-        changeSlide(1);
-    }
-});
-
-// Touch/swipe support for mobile
-let touchStartX = 0;
-let touchEndX = 0;
-
-document.addEventListener('touchstart', function(e) {
-    touchStartX = e.changedTouches[0].screenX;
-});
-
-document.addEventListener('touchend', function(e) {
-    touchEndX = e.changedTouches[0].screenX;
-    handleSwipe();
-});
-
-function handleSwipe() {
-    const swipeThreshold = 50;
-    const diff = touchStartX - touchEndX;
-    
-    if (Math.abs(diff) > swipeThreshold) {
-        if (diff > 0) {
-            changeSlide(1); // Swipe left, go to next slide
-        } else {
-            changeSlide(-1); // Swipe right, go to previous slide
-        }
-    }
-}
-
-function summarize(id) {
-    // Add loading state
+// ---------- Summary logic ----------
+function summarize(event, transcriptId) {
     const button = event.target;
     const originalText = button.innerHTML;
     button.innerHTML = '⏳ Generating Summary...';
     button.disabled = true;
-    
-    fetch("{% url 'summarize_transcript' 0 %}".replace('/0/', `/${id}/`), {
-        method: "POST",
-        headers: {
-            "X-CSRFToken": "{{ csrf_token }}",
-            "Accept": "application/json"
+
+    fetch(`/dashboard/transcript/${transcriptId}/summarize/`, {
+        method:'POST',
+        headers:{
+            'X-CSRFToken': csrf_token,
+            'Accept':'application/json'
         }
     })
-    .then(res => {
-        if (!res.ok) {
-            return res.text().then(text => { throw new Error(text); });
-        }
-        return res.json();
-    })
-    .then(data => {
-        if (data.success) {
-            // Add smooth reload with animation
-            document.body.style.opacity = '0';
-            setTimeout(() => {
-                location.reload();
-            }, 300);
+    .then(res => res.json())
+    .then(data=>{
+        if(data.success){
+            // Update summary HTML
+            const summaryEl = document.querySelector('.summary-text');
+            if(summaryEl) summaryEl.innerHTML = data.summary;
+
+            // Add summary audio
+            let audioContainer = document.querySelector('#summary-audio');
+            if(!audioContainer){
+                audioContainer = document.createElement('div');
+                audioContainer.id = 'summary-audio';
+                document.getElementById('summary-section').appendChild(audioContainer);
+            }
+            audioContainer.innerHTML = `
+                <h4>🔊 Summary Audio</h4>
+                <audio controls>
+                    <source src="${data.summary_audio_url}" type="audio/mpeg">
+                </audio>
+            `;
+            button.innerHTML = originalText;
+            button.disabled = false;
         } else {
-            alert("Summarization failed: " + data.error);
+            alert("Error generating summary: "+data.error);
             button.innerHTML = originalText;
             button.disabled = false;
         }
     })
-    .catch(err => {
-        console.error("Error:", err);
-        alert("Network error: " + err.message);
+    .catch(err=>{
+        console.error(err);
+        alert("Network error: "+err.message);
         button.innerHTML = originalText;
         button.disabled = false;
     });
 }
 
-// Add smooth page transitions
-document.addEventListener('DOMContentLoaded', function() {
+// ---------- Init ----------
+document.addEventListener('DOMContentLoaded', function(){
     document.body.style.opacity = '1';
-    
-    // Initialize slider
-    if (totalSlides > 0) {
+    if(totalSlides>0){
         updateSliderPosition();
         updateDots();
         updateCounter();
-        
-        // Start auto-slide
         startAutoSlide();
-        
-        // Pause auto-slide on hover
+
         const sliderContainer = document.querySelector('.slider-container');
-        if (sliderContainer) {
+        if(sliderContainer){
             sliderContainer.addEventListener('mouseenter', stopAutoSlide);
             sliderContainer.addEventListener('mouseleave', startAutoSlide);
         }
     }
+
+    document.addEventListener('keydown', function(e){
+        if(e.key==='ArrowLeft') changeSlide(-1);
+        else if(e.key==='ArrowRight') changeSlide(1);
+    });
+
+    let touchStartX=0, touchEndX=0;
+    document.addEventListener('touchstart', e=>touchStartX=e.changedTouches[0].screenX);
+    document.addEventListener('touchend', e=>{
+        touchEndX=e.changedTouches[0].screenX;
+        const diff=touchStartX-touchEndX;
+        if(Math.abs(diff)>50) diff>0 ? changeSlide(1) : changeSlide(-1);
+    });
 });
 </script>
 {% endblock %}

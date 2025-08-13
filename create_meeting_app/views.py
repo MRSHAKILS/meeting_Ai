@@ -13,6 +13,8 @@ from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from google.cloud import translate_v2 as translate
+from create_meeting_app.utils.tts import generate_tts_and_save
+from bs4 import BeautifulSoup
 
 from .models import Transcript
 
@@ -173,8 +175,25 @@ Transcript:
 
         # 3. Save and return the summary
         t.summary = summary
-        t.save(update_fields=["summary"])
-        return JsonResponse({"success": True, "summary": summary})
+        t.save(update_fields=["summary"])       
+        # 4. Generate summary TTS (strip HTML for clean reading)
+        plain_summary = BeautifulSoup(t.summary, "html.parser").get_text(separator="\n")
+        generate_tts_and_save(
+            plain_summary,  # use plain text for TTS
+            lang='en',      # 'bn' if Bangla, 'en' if English TTS
+            file_field=t.summary_audio,
+            instance=t,
+            filename=f"summary_{t.id}.mp3"
+        )
+
+        t.save(update_fields=["summary_audio"])
+
+        # 5. Return JSON with audio URL
+        return JsonResponse({
+            "success": True,
+            "summary": summary,
+            "summary_audio_url": t.summary_audio.url
+        })
 
     except requests.exceptions.HTTPError:
         error_text = resp.text
