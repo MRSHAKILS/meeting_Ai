@@ -33,6 +33,9 @@ class Transcript(models.Model):
     transcript_audio = models.FileField(upload_to='tts/', null=True, blank=True)
     summary_audio    = models.FileField(upload_to='tts/', null=True, blank=True)
 
+    # NEW: Field for deleted hateful lines
+    hateful_text    = models.TextField(blank=True, null=True)
+
     def __str__(self):
         return f"Transcript for {self.meeting} at {self.created}"
 

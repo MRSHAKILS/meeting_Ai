@@ -213,6 +213,21 @@
     margin: 0;
 }
 
+
+.pdf{
+      background-color: #16a34a;   /* green-600 */
+  color: white;               /* text-white */
+  padding: 0.5rem 1rem;       /* py-2 px-4 */
+  border-radius: 0.25rem;     /* rounded */
+  display: inline-block;      /* inline-block */
+  margin-top: 1rem;           /* mt-4 */
+  transition: background-color 0.2s ease; /* transition */
+
+}
+.pdf:hover {
+  background-color: #15803d;  /* green-700 */
+}
+
 .screenshots-section {
     grid-column: 1 / -1;
     margin-top: 20px;
@@ -510,6 +525,20 @@
                 {% endfor %}
             </div>
 
+            {% if hateful_segments %}
+            <h3 class="section-title">🚫 Deleted Hate Speech Lines</h3>
+            <div class="transcript-container">
+                {% for seg in hateful_segments %}
+                    <div class="transcript-segment">
+                        {% if seg.speaker %}
+                        <p class="speaker-name">{{ seg.speaker }}</p>
+                        {% endif %}
+                        <p class="transcript-text" style="color: red;">{{ seg.text }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
             <form method="POST" action="{% url 'transcribe_meeting' meeting.id %}">
                 {% csrf_token %}
                 <button type="submit" class="modern-button">
@@ -528,47 +557,47 @@
         </div>
 
         <!-- Summary Section -->
-        <div id="summary-section" class="content-section">
-            <h2 class="section-title">
-                <svg class="section-icon" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-                </svg>
-                AI Summary
-            </h2>
+        <div class="summary-card">
+    <h2 class="text-xl font-semibold mb-4 flex items-center">
+        <i class="fas fa-robot mr-2 text-indigo-600"></i>
+        AI Summary
+    </h2>
 
-            {% with meeting.transcripts.first as first_trans %}
-                {% if first_trans %}
-                    <div class="summary-text prose max-w-none">
-                        {% if first_trans.summary %}
-                            {{ first_trans.summary|safe }}
-                        {% else %}
-                            <div class="empty-state">
-                                <div class="empty-state-icon">💡</div>
-                                <p>Ready to generate summary</p>
-                                <button onclick="summarize(event, {{ first_trans.id }})" class="modern-button">
-                                    💡 Summarize Transcript
-                                </button>
-                            </div>
-                        {% endif %}
-                    </div>
-
-                    {% if first_trans.summary_audio %}
-                        <div id="summary-audio">
-                            <h4>🔊 Summary Audio</h4>
-                            <audio controls>
-                                <source src="{{ first_trans.summary_audio.url }}" type="audio/mpeg">
-                            </audio>
-                        </div>
-                    {% endif %}
+    {% with meeting.transcripts.first as first_trans %}
+        {% if first_trans %}
+            <div id="summary-content" class="mt-4">  <!-- ADD THIS DIV HERE -->
+                {% if first_trans.summary %}
+                    {{ first_trans.summary|safe }}
+                {% else %}
+                    <p class="text-center text-gray-600 mb-4">
+                        💡
+                        Ready to generate summary
+                    </p>
+                    <button id="summarize-btn" 
+                            data-url="{% url 'summarize_transcript' first_trans.id %}"
+                            class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition">
+                        💡 Summarize Transcript
+                    </button>
                 {% endif %}
-            {% endwith %}
+            </div>  <!-- Close the div here, or adjust as needed -->
 
-            {% if meeting.transcripts.first.summary %}
-                <a href="{% url 'download_summary_pdf' meeting.id %}" class="modern-button">
-                    📄 Download Summary PDF
-                </a>
+            {% if first_trans.summary_audio %}
+                <div class="mt-4">
+                    🔊 Summary Audio
+                    <audio controls class="w-full">
+                        <source src="{{ first_trans.summary_audio.url }}" type="audio/mpeg">
+                    </audio>
+                </div>
             {% endif %}
-        </div>
+        {% endif %}
+    {% endwith %}
+
+    {% if meeting.transcripts.first.summary %}
+        <a href="{% url 'download_summary_pdf' meeting.id %}" class="pdf">
+            📄 Download Summary PDF
+        </a>
+    {% endif %}
+</div>
 
         <!-- Screenshots Section -->
         <div class="content-section screenshots-section">
@@ -686,23 +715,28 @@ function summarize(event, transcriptId) {
     button.innerHTML = '⏳ Generating Summary...';
     button.disabled = true;
 
-    fetch(`/dashboard/transcript/${transcriptId}/summarize/`, {
-        method:'POST',
-        headers:{
+    const url = `/dashboard/transcript/${transcriptId}/summarize/`;  // CHANGED: Match urls.py
+    console.log('Fetching URL:', url);  // Debug URL
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
             'X-CSRFToken': csrf_token,
-            'Accept':'application/json'
+            'Accept': 'application/json'
         }
     })
-    .then(res => res.json())
-    .then(data=>{
-        if(data.success){
-            // Update summary HTML
+    .then(res => {
+        console.log('Response status:', res.status);
+        if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
+        return res.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
+        if (data.success) {
             const summaryEl = document.querySelector('.summary-text');
-            if(summaryEl) summaryEl.innerHTML = data.summary;
-
-            // Add summary audio
+            if (summaryEl) summaryEl.innerHTML = data.summary;
             let audioContainer = document.querySelector('#summary-audio');
-            if(!audioContainer){
+            if (!audioContainer) {
                 audioContainer = document.createElement('div');
                 audioContainer.id = 'summary-audio';
                 document.getElementById('summary-section').appendChild(audioContainer);
@@ -716,14 +750,14 @@ function summarize(event, transcriptId) {
             button.innerHTML = originalText;
             button.disabled = false;
         } else {
-            alert("Error generating summary: "+data.error);
+            alert("Error generating summary: " + data.error);
             button.innerHTML = originalText;
             button.disabled = false;
         }
     })
-    .catch(err=>{
-        console.error(err);
-        alert("Network error: "+err.message);
+    .catch(err => {
+        console.error('Fetch error:', err);
+        alert("Network error: " + err.message);
         button.innerHTML = originalText;
         button.disabled = false;
     });
@@ -757,6 +791,76 @@ document.addEventListener('DOMContentLoaded', function(){
         const diff=touchStartX-touchEndX;
         if(Math.abs(diff)>50) diff>0 ? changeSlide(1) : changeSlide(-1);
     });
+});
+</script>
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const btn = document.getElementById('summarize-btn');
+    if (btn) {
+        btn.addEventListener('click', async function() {
+            btn.disabled = true;
+            btn.textContent = 'Summarizing...';  // Optional: Show loading state
+
+            try {
+                const response = await fetch(btn.dataset.url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // 'X-CSRFToken': getCookie('csrftoken'),  // Uncomment if you remove @csrf_exempt later
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (data.success) {
+    const summaryDiv = document.getElementById('summary-content');
+    if (summaryDiv) {
+        summaryDiv.innerHTML = data.summary;
+
+        // Optionally handle audio
+        if (data.summary_audio_url) {
+            const audioPlayer = document.createElement('audio');
+            audioPlayer.controls = true;
+            audioPlayer.src = data.summary_audio_url;
+            summaryDiv.appendChild(audioPlayer);  // Now safe
+        }
+    } else {
+        console.warn('Summary div not found; cannot update content.');
+    }
+
+    // Hide the button after success
+    btn.style.display = 'none';
+} else {
+    alert('Error: ' + data.error);
+}
+            } catch (error) {
+                console.error('Fetch error:', error);
+                alert('Failed to summarize: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '💡 Summarize Transcript';
+            }
+        });
+    }
 });
 </script>
 {% endblock %}
