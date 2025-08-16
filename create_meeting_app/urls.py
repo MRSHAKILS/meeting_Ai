@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import dashboard, create_meeting, join_meeting, meeting_page, delete_meeting, transcribe_meeting_view, summarize_transcript
+from .views import dashboard, create_meeting, join_meeting, meeting_page, delete_meeting, transcribe_meeting_view, summarize_transcript,ask_meeting_question
 from create_meeting_app.views import download_summary_pdf
 
 urlpatterns = [
@@ -11,4 +11,6 @@ urlpatterns = [
     path('meeting/<int:meeting_id>/transcribe/', transcribe_meeting_view, name='transcribe_meeting'),
     path('dashboard/transcript/<int:transcript_id>/summarize/', summarize_transcript, name='summarize_transcript'),
     path('meeting/<int:meeting_id>/download_pdf/', download_summary_pdf, name='download_summary_pdf'),
+    path('meeting/<int:meeting_id>/ask/', ask_meeting_question, name='ask_meeting_question'),
+
 ]

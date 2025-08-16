@@ -370,6 +370,90 @@
     margin-bottom: 15px;
     opacity: 0.5;
 }
+/* QA widget styles (vanilla CSS) */
+#qa-widget {
+  box-sizing: border-box;
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px solid #e2e8f0; /* soft gray */
+  border-radius: 10px;
+  background: #ffffff;
+  max-width: 900px;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  color: #111827;
+  box-shadow: 0 6px 18px rgba(15,23,42,0.04);
+}
+
+#qa-widget h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+#qa-widget textarea#qa-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  resize: vertical;
+  min-height: 70px;
+  line-height: 1.4;
+  transition: box-shadow .15s ease, border-color .15s ease;
+}
+
+#qa-widget textarea#qa-input:focus {
+  outline: none;
+  border-color: #6366f1; /* indigo-ish */
+  box-shadow: 0 6px 20px rgba(99,102,241,0.12);
+}
+
+#qa-widget .qa-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+#qa-widget button#qa-submit {
+  background: #4f46e5; /* indigo */
+  color: #fff;
+  border: none;
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(79,70,229,0.12);
+}
+
+#qa-widget button#qa-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+#qa-widget #qa-status {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+#qa-widget #qa-result {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e6eef8;
+  color: #0f172a;
+  white-space: pre-wrap;
+  font-size: 0.95rem;
+}
+
+/* responsive */
+@media (max-width: 640px) {
+  #qa-widget { padding: 12px; }
+  #qa-widget button#qa-submit { padding: 8px 12px; }
+}
+
 
 /* Animations */
 @keyframes slideInFromTop {
@@ -598,6 +682,16 @@
             📄 Download Summary PDF
         </a>
     {% endif %}
+</div>
+<!-- Q&A Box: paste in meeting_detail.html near transcript or summary -->
+<div id="qa-widget" class="qa-widget mt-6 p-4 border rounded">
+  <h3 class="text-lg font-semibold mb-2">Ask about this meeting</h3>
+  <textarea id="qa-input" rows="3" class="w-full p-2 border rounded" placeholder="Ask a question about this meeting..."></textarea>
+  <div class="mt-2 flex items-center gap-2">
+    <button id="qa-submit" class="bg-indigo-600 text-white px-4 py-2 rounded">Ask</button>
+    <span id="qa-status" class="text-sm text-gray-500"></span>
+  </div>
+  <div id="qa-result" class="mt-4 p-3 bg-gray-50 rounded hidden"></div>
 </div>
 
         <!-- Screenshots Section -->
@@ -863,5 +957,48 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+</script>
+
+<script>
+(function(){
+  const csrf = '{{ csrf_token }}';
+  const btn = document.getElementById('qa-submit');
+  const input = document.getElementById('qa-input');
+  const status = document.getElementById('qa-status');
+  const result = document.getElementById('qa-result');
+
+  btn.addEventListener('click', async () => {
+    const q = (input.value || '').trim();
+    if(!q) { alert('Please type a question'); return; }
+    btn.disabled = true;
+    status.textContent = 'Thinking...';
+    result.classList.add('hidden');
+    try {
+      const resp = await fetch("{% url 'ask_meeting_question' meeting.id %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrf
+        },
+        body: JSON.stringify({ question: q })
+      });
+      const data = await resp.json();
+      if(!data.success) {
+        status.textContent = 'Error: ' + (data.error || 'unknown');
+        btn.disabled = false;
+        return;
+      }
+      // show answer
+      result.innerText = data.answer;
+      result.classList.remove('hidden');
+      status.textContent = data.mode === 'llm' ? 'Answered by LLM' : 'Extractive result (no LLM)';
+    } catch (err) {
+      console.error(err);
+      status.textContent = 'Network error';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+})();
 </script>
 {% endblock %}

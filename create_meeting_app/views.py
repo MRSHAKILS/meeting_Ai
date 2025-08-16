@@ -15,6 +15,13 @@ from create_meeting_app.utils.tts import generate_tts_and_save
 from bs4 import BeautifulSoup
 from .models import Transcript
 
+
+import json
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
+from django.utils.html import escape
+
+
 def dashboard(request):
     meetings = Meeting.objects.filter(user=request.user).order_by('-created_at')
     return render(request, 'dashboard.html', {'meetings': meetings})
@@ -231,3 +238,76 @@ def download_summary_pdf(request, meeting_id):
         raise Http404("PDF file not found.")
     except Exception as e:
         return HttpResponseBadRequest(f"Unexpected error: {e}")
+    
+
+# inside views.py: paste this view
+@login_required
+@require_POST
+def ask_meeting_question(request, meeting_id):
+    """
+    POST JSON: { "question": "..." }
+    Returns JSON: { "success": True, "answer": "...", "mode": "llm"|"extractive" }
+    """
+    try:
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+        question = (payload.get("question") or "").strip()
+        if not question:
+            return JsonResponse({"success": False, "error": "Missing question"}, status=400)
+
+        meeting = get_object_or_404(Meeting, pk=meeting_id, user=request.user)
+
+        # Gather transcript texts (prefer translated_text if available)
+        texts = []
+        for t in meeting.transcripts.order_by('created'):
+            if getattr(t, "translated_text", None):
+                texts.append(t.translated_text)
+            elif getattr(t, "text", None):
+                texts.append(t.text)
+        full_text = "\n\n".join([x for x in texts if x])
+
+        if not full_text:
+            return JsonResponse({"success": False, "error": "No transcript available for this meeting."}, status=400)
+
+        # Use helper to retrieve top chunks
+        from .utils.qa_helper import retrieve_top_chunks, call_groq_chat
+
+        top_chunks, scores = retrieve_top_chunks(full_text, question, top_k=4)
+        context = "\n\n".join(top_chunks) if top_chunks else full_text[:4000]
+
+        # If Groq key is configured, form a prompt and call LLM; else fallback to extractive.
+        answer = None
+        if getattr(settings, "GROQ_API_KEY", None):
+            prompt = f"""
+SYSTEM:
+You are a precise assistant. Your ONLY knowledge is the transcript chunks provided below.
+- Never make up facts outside the transcript.
+- If the answer is not in the transcript, reply exactly: "No direct answer found in the transcript."
+- Be concise (2–4 sentences max).
+- Prefer quoting phrases directly from the transcript when possible.
+
+CONTEXT:
+{context}
+
+USER QUESTION:
+{question}
+
+ASSISTANT ANSWER:
+"""
+
+            llm_resp = call_groq_chat(prompt)
+            if llm_resp:
+                answer = llm_resp
+
+        if not answer:
+            # extractive fallback: return the top chunks as quoted context + small synthesized header
+            header = "Extractive answer (no LLM or LLM failed). Relevant transcript excerpts follow:\n\n"
+            quoted = "\n\n---\n\n".join([f"{escape(c)}" for c in top_chunks]) if top_chunks else escape(full_text[:4000])
+            answer = header + quoted
+            mode = "extractive"
+        else:
+            mode = "llm"
+
+        return JsonResponse({"success": True, "answer": answer, "mode": mode})
+
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
