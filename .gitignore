@@ -8,6 +8,10 @@ __pycache__/
 
 # Django
 db.sqlite3
+db.sqlite3.bak
+*.db
+*.sqlite
+*.sqlite3
 *.log
 
 # Environment
