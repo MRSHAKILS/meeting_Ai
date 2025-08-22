@@ -5,6 +5,16 @@ import datetime
 from google.cloud import speech_v1p1beta1 as speech
 from google.cloud import storage
 from deepmultilingualpunctuation import PunctuationModel
+from create_meeting_app.utils.tts import generate_tts_and_save
+import requests
+from django.conf import settings
+
+# NEW: Import for Bangla sentence splitting
+try:
+    from bnlp import NLTKTokenizer
+    bnlp_available = True
+except ImportError:
+    bnlp_available = False
 
 GCS_BUCKET = os.getenv('GCS_BUCKET_NAME')
 KEY_PATH = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
@@ -13,41 +23,7 @@ speech_client = speech.SpeechClient.from_service_account_file(KEY_PATH)
 storage_client = storage.Client.from_service_account_json(KEY_PATH)
 
 ENGLISH_WORDS = {
-    # "সিরিয়াসলি": "seriously",
-    # "হোমওয়ার্ক": "homework",
-    # "হাই": "hi",
-    # "হ্যালো": "hello",
-    # "হ্যালো এভরিওয়ান": "hello everyone",
-    # "এভরিওয়ান": "everyone",
-    # "গুড মর্নিং": "good morning",
-    # "গুড নাইট": "good night",
-    # "গুড ইভিনিং": "good evening",
-    # "টেনশন": "tension",
-    # "মিডটার্ম": "midterm",
-    # "কুইজ": "quiz",
-    # "প্রেজেন্টেশন": "presentation",
-    # "ডেডলাইন": "deadline",
-    # "রেজাল্ট": "result",
-    # "অ্যাসাইনমেন্ট": "assignment",
-    # "মার্কস": "marks",
-    # "ক্লাস": "class",
-    # "প্রজেক্ট": "project",
-    # "ইউনিভার্সিটি": "university",
-    # "সেমিস্টার": "semester",
-    # "থিসিস": "thesis",
-    # "স্টাডি": "study",
-    # "ফাইনাল": "final",
-    # "আটেন্ডেন্স": "attendance",
-    # "লেকচার": "lecture",
-    # "গুগল": "Google",
-    # "মিট": "Meet",
-    # "পিডিএফ": "PDF",
-    # "নোট": "note",
-    # "রেজিস্ট্রেশন": "registration",
-    # "টিচার": "teacher",
-    # "স্যার": "sir",
-    # "ম্যাডাম": "madam"
-    # You can keep adding more if needed
+    # ... (your existing dictionary, unchanged)
 }
 
 def restore_english_words(text):
@@ -56,13 +32,44 @@ def restore_english_words(text):
     return text
 
 def get_seconds(d):
-    """
-    Return total seconds of a protobuf Duration or a datetime.timedelta.
-    """
     if hasattr(d, 'nanos'):
         return d.seconds + d.nanos / 1e9
     else:
         return d.total_seconds()
+
+def detect_hate_speech(text):
+    prompt = f"""
+You are an expert at detecting hate speech in Bangla text.
+
+Hate speech is language that expresses discrimination, hostility, or violence against individuals or groups based on attributes like race, religion, ethnicity, nationality, gender, sexual orientation, political affiliation, origin, body shaming, or disability. Key indicators include dehumanizing language, calls for violence, discriminatory slurs, stereotyping, promoting supremacy, or personal offenses. Consider cultural context, dialects, and code-mixing in Bangla.
+
+Classify the following Bangla text as hate speech.
+Respond only with 'hate' or 'safe'.
+
+Text: {text}
+""".strip()
+
+    try:
+        resp = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {settings.GROQ_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "llama3-8b-8192",
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0,
+                "max_tokens": 10,
+            },
+            timeout=30,
+        )
+        resp.raise_for_status()
+        classification = resp.json()["choices"][0]["message"]["content"].strip().lower()
+        return 'hate' in classification
+    except Exception as e:
+        print(f"⚠️ Error in hate detection: {e}")
+        return False  # Assume safe if error
 
 class Command(BaseCommand):
     help = "Transcribe WAV files in Bangla with smart punctuation & pause-based segments"
@@ -77,7 +84,7 @@ class Command(BaseCommand):
             return self.stderr.write("❌ Meeting not found.")
 
         recordings = sorted(f for f in os.listdir("media/recordings")
-                            if f.endswith('.wav') and f"_{mid}_" in f)
+                           if f.endswith('.wav') and f"_{mid}_" in f)
         if not recordings:
             return self.stdout.write("📭 No recordings found.")
 
@@ -113,11 +120,45 @@ class Command(BaseCommand):
                 punct = punctuator.restore_punctuation(raw).replace('.', '।')
                 final_text = restore_english_words(punct)
 
+                # NEW: Filter for hate speech (sentence-level)
+                if bnlp_available:
+                    bnltk = NLTKTokenizer()
+                    sentences = bnltk.sentence_tokenization(final_text)
+                else:
+                    # Fallback: Split on Bangla full stop
+                    sentences = [s.strip() for s in final_text.split('।') if s.strip()]
+
+                clean_sentences = []
+                hateful_sentences = []
+                for sentence in sentences:
+                    if ': ' in sentence:
+                        speaker, text = sentence.split(': ', 1)
+                        if detect_hate_speech(text):
+                            hateful_sentences.append(sentence)
+                        else:
+                            clean_sentences.append(sentence)
+                    else:
+                        if detect_hate_speech(sentence):
+                            hateful_sentences.append(sentence)
+                        else:
+                            clean_sentences.append(sentence)
+
                 transcript = Transcript.objects.create(
                     meeting=meeting,
                     raw_text=raw,
-                    text=final_text
+                    text='। '.join(clean_sentences),  # Join with Bangla full stop
+                    hateful_text='। '.join(hateful_sentences) if hateful_sentences else ''
                 )
+
+                # Generate TTS for cleaned text only
+                if transcript.text:
+                    generate_tts_and_save(transcript.text, 'bn', transcript.transcript_audio, transcript, f"transcript_{mid}.mp3")
+
+                # If summary already exists, generate summary audio
+                if transcript.summary:
+                    generate_tts_and_save(transcript.summary, 'bn', transcript.summary_audio, transcript, f"summary_{mid}.mp3")
+
+                transcript.save()
 
                 # Segment by pauses
                 for result in resp.results:
@@ -134,11 +175,9 @@ class Command(BaseCommand):
                             start_time_proto = w.start_time
                         buffer += w.word + " "
 
-                        # Compute pause from previous word
                         pause = sec_start - prev_end_sec if prev_end_sec is not None else 0
                         end_of_audio = (idx == len(words) - 1)
 
-                        # Split if long pause or end of this result
                         if pause > 0.8 or end_of_audio:
                             tot_start = get_seconds(start_time_proto)
                             tot_end = sec_end

@@ -71,6 +71,7 @@
     transition: all 0.3s ease;
     animation: fadeInUp 0.8s ease-out;
     animation-fill-mode: both;
+    
 }
 
 .content-section:nth-child(1) { animation-delay: 0.2s; }
@@ -211,6 +212,21 @@
     font-size: 1.1rem;
     line-height: 1.8;
     margin: 0;
+}
+
+
+.pdf{
+      background-color: #16a34a;   /* green-600 */
+  color: white;               /* text-white */
+  padding: 0.5rem 1rem;       /* py-2 px-4 */
+  border-radius: 0.25rem;     /* rounded */
+  display: inline-block;      /* inline-block */
+  margin-top: 1rem;           /* mt-4 */
+  transition: background-color 0.2s ease; /* transition */
+
+}
+.pdf:hover {
+  background-color: #15803d;  /* green-700 */
 }
 
 .screenshots-section {
@@ -354,6 +370,90 @@
     margin-bottom: 15px;
     opacity: 0.5;
 }
+/* QA widget styles (vanilla CSS) */
+#qa-widget {
+  box-sizing: border-box;
+  margin-top: 24px;
+  padding: 16px;
+  border: 1px solid #e2e8f0; /* soft gray */
+  border-radius: 10px;
+  background: #ffffff;
+  max-width: 900px;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  color: #111827;
+  box-shadow: 0 6px 18px rgba(15,23,42,0.04);
+}
+
+#qa-widget h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+#qa-widget textarea#qa-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  resize: vertical;
+  min-height: 70px;
+  line-height: 1.4;
+  transition: box-shadow .15s ease, border-color .15s ease;
+}
+
+#qa-widget textarea#qa-input:focus {
+  outline: none;
+  border-color: #6366f1; /* indigo-ish */
+  box-shadow: 0 6px 20px rgba(99,102,241,0.12);
+}
+
+#qa-widget .qa-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+#qa-widget button#qa-submit {
+  background: #4f46e5; /* indigo */
+  color: #fff;
+  border: none;
+  padding: 9px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(79,70,229,0.12);
+}
+
+#qa-widget button#qa-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+#qa-widget #qa-status {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+#qa-widget #qa-result {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e6eef8;
+  color: #0f172a;
+  white-space: pre-wrap;
+  font-size: 0.95rem;
+}
+
+/* responsive */
+@media (max-width: 640px) {
+  #qa-widget { padding: 12px; }
+  #qa-widget button#qa-submit { padding: 8px 12px; }
+}
+
 
 /* Animations */
 @keyframes slideInFromTop {
@@ -484,8 +584,9 @@
 
     <!-- Content Grid -->
     <div class="content-grid">
+
         <!-- Transcript Section -->
-        <div class="content-section">
+        <div id="transcript-section" class="content-section">
             <h2 class="section-title">
                 <svg class="section-icon" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -495,68 +596,103 @@
             
             <div class="transcript-container">
                 {% for seg in segments %}
-                <div class="transcript-segment">
-                    {% if seg.speaker %}
-                    <p class="speaker-name">{{ seg.speaker }}</p>
-                    {% endif %}
-                    <p class="transcript-text">{{ seg.text }}</p>
-                </div>
+                    <div class="transcript-segment">
+                        {% if seg.speaker %}
+                        <p class="speaker-name">{{ seg.speaker }}</p>
+                        {% endif %}
+                        <p class="transcript-text">{{ seg.text }}</p>
+                    </div>
                 {% empty %}
-                <div class="empty-state">
-                    <div class="empty-state-icon">📝</div>
-                    <p>No transcript available yet.</p>
-                </div>
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📝</div>
+                        <p>No transcript available yet.</p>
+                    </div>
                 {% endfor %}
             </div>
-            
+
+            {% if hateful_segments %}
+            <h3 class="section-title">🚫 Deleted Hate Speech Lines</h3>
+            <div class="transcript-container">
+                {% for seg in hateful_segments %}
+                    <div class="transcript-segment">
+                        {% if seg.speaker %}
+                        <p class="speaker-name">{{ seg.speaker }}</p>
+                        {% endif %}
+                        <p class="transcript-text" style="color: red;">{{ seg.text }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
             <form method="POST" action="{% url 'transcribe_meeting' meeting.id %}">
                 {% csrf_token %}
                 <button type="submit" class="modern-button">
                     📝 Generate Transcript
                 </button>
             </form>
-        </div>
 
-        <!-- Summarize Section -->
-        <div class="content-section">
-            <h2 class="section-title">
-                <svg class="section-icon" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-                </svg>
-                AI Summary
-            </h2>
-            
-            {% with meeting.transcripts.all as t_list %}
-            {% if t_list %}
-                {% with t_list.0 as first_trans %}
-                    {% if first_trans.summary %}
-                    <div class="summary-text prose max-w-none">
-                        {{ first_trans.summary|safe }}
-                    </div>
-
-                    {% else %}
-                    <div class="empty-state">
-                        <div class="empty-state-icon">💡</div>
-                        <p>Ready to generate summary</p>
-                        <button onclick="summarize({{ first_trans.id }})" class="modern-button">
-                            💡 Summarize Transcript
-                        </button>
-                    </div>
-                    {% endif %}
-                {% endwith %}
-            {% else %}
-            <div class="empty-state">
-                <div class="empty-state-icon">⏳</div>
-                <p>Generate transcript first to create summary</p>
-            </div>
-            {% endif %}
+            {% with meeting.transcripts.first as first_trans %}
+                {% if first_trans.transcript_audio %}
+                <h4>🔊 Transcript Audio</h4>
+                <audio controls>
+                    <source src="{{ first_trans.transcript_audio.url }}" type="audio/mpeg">
+                </audio>
+                {% endif %}
             {% endwith %}
         </div>
-        {% if meeting.transcripts.first.summary %}
-         <a href="{% url 'download_summary_pdf' meeting.id %}" class="modern-button">
-                 📄 Download Summary PDF
-             </a>
+
+        <!-- Summary Section -->
+        <div class="summary-card">
+    <h2 class="text-xl font-semibold mb-4 flex items-center">
+        <i class="fas fa-robot mr-2 text-indigo-600"></i>
+        AI Summary
+    </h2>
+
+    {% with meeting.transcripts.first as first_trans %}
+        {% if first_trans %}
+            <div id="summary-content" class="mt-4">  <!-- ADD THIS DIV HERE -->
+                {% if first_trans.summary %}
+                    {{ first_trans.summary|safe }}
+                {% else %}
+                    <p class="text-center text-gray-600 mb-4">
+                        💡
+                        Ready to generate summary
+                    </p>
+                    <button id="summarize-btn" 
+                            data-url="{% url 'summarize_transcript' first_trans.id %}"
+                            class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition">
+                        💡 Summarize Transcript
+                    </button>
+                {% endif %}
+            </div>  <!-- Close the div here, or adjust as needed -->
+
+            {% if first_trans.summary_audio %}
+                <div class="mt-4">
+                    🔊 Summary Audio
+                    <audio controls class="w-full">
+                        <source src="{{ first_trans.summary_audio.url }}" type="audio/mpeg">
+                    </audio>
+                </div>
+            {% endif %}
         {% endif %}
+    {% endwith %}
+
+    {% if meeting.transcripts.first.summary %}
+        <a href="{% url 'download_summary_pdf' meeting.id %}" class="pdf">
+            📄 Download Summary PDF
+        </a>
+    {% endif %}
+</div>
+<!-- Q&A Box: paste in meeting_detail.html near transcript or summary -->
+<div id="qa-widget" class="qa-widget mt-6 p-4 border rounded">
+  <h3 class="text-lg font-semibold mb-2">Ask about this meeting</h3>
+  <textarea id="qa-input" rows="3" class="w-full p-2 border rounded" placeholder="Ask a question about this meeting..."></textarea>
+  <div class="mt-2 flex items-center gap-2">
+    <button id="qa-submit" class="bg-indigo-600 text-white px-4 py-2 rounded">Ask</button>
+    <span id="qa-status" class="text-sm text-gray-500"></span>
+  </div>
+  <div id="qa-result" class="mt-4 p-3 bg-gray-50 rounded hidden"></div>
+</div>
 
         <!-- Screenshots Section -->
         <div class="content-section screenshots-section">
@@ -566,101 +702,92 @@
                 </svg>
                 Screenshots & Slides
             </h2>
-            
+
             {% if screenshots %}
-            <div class="screenshots-slider">
-                <div class="slider-container">
-                    <div class="slider-track" id="sliderTrack">
-                        {% for shot in screenshots %}
-                        <div class="slide">
-                            <img src="/{{ shot.image_path }}" alt="Screenshot at {{ shot.created }}">
-                            <div class="slide-overlay">
-                                <strong>Captured:</strong> {{ shot.created|date:"M d, Y H:i" }}
+                <div class="screenshots-slider">
+                    <div class="slider-container">
+                        <div class="slider-track" id="sliderTrack">
+                            {% for shot in screenshots %}
+                            <div class="slide">
+                                <img src="/{{ shot.image_path }}" alt="Screenshot at {{ shot.created }}">
+                                <div class="slide-overlay">
+                                    <strong>Captured:</strong> {{ shot.created|date:"M d, Y H:i" }}
+                                </div>
                             </div>
+                            {% endfor %}
                         </div>
+
+                        {% if screenshots|length > 1 %}
+                        <button class="slider-nav prev" onclick="changeSlide(-1)">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"/>
+                            </svg>
+                        </button>
+                        <button class="slider-nav next" onclick="changeSlide(1)">
+                            <svg fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/>
+                            </svg>
+                        </button>
+                        {% endif %}
+                    </div>
+
+                    {% if screenshots|length > 1 %}
+                    <div class="slider-dots">
+                        {% for shot in screenshots %}
+                        <button class="dot{% if forloop.first %} active{% endif %}" onclick="goToSlide({{ forloop.counter0 }})"></button>
                         {% endfor %}
                     </div>
-                    
-                    {% if screenshots|length > 1 %}
-                    <button class="slider-nav prev" onclick="changeSlide(-1)">
-                        <svg fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z"/>
-                        </svg>
-                    </button>
-                    <button class="slider-nav next" onclick="changeSlide(1)">
-                        <svg fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"/>
-                        </svg>
-                    </button>
+                    <div class="slider-counter">
+                        <span id="currentSlide">1</span> / <span id="totalSlides">{{ screenshots|length }}</span>
+                    </div>
                     {% endif %}
                 </div>
-                
-                {% if screenshots|length > 1 %}
-                <div class="slider-dots">
-                    {% for shot in screenshots %}
-                    <button class="dot{% if forloop.first %} active{% endif %}" onclick="goToSlide({{ forloop.counter0 }})"></button>
-                    {% endfor %}
-                </div>
-                <div class="slider-counter">
-                    <span id="currentSlide">1</span> / <span id="totalSlides">{{ screenshots|length }}</span>
-                </div>
-                {% endif %}
-            </div>
             {% else %}
-            <div class="empty-state">
-                <div class="empty-state-icon">📸</div>
-                <p>No screenshots captured yet.</p>
-            </div>
+                <div class="empty-state">
+                    <div class="empty-state-icon">📸</div>
+                    <p>No screenshots captured yet.</p>
+                </div>
             {% endif %}
         </div>
+
     </div>
 </div>
 
 <script>
-// Slider functionality
+const csrf_token = '{{ csrf_token }}';
+
+// ---------- Slider logic ----------
 let currentSlideIndex = 0;
 const slides = document.querySelectorAll('.slide');
 const totalSlides = slides.length;
 
 function updateSliderPosition() {
     const track = document.getElementById('sliderTrack');
-    if (track) {
-        track.style.transform = `translateX(-${currentSlideIndex * 100}%)`;
-    }
+    if(track) track.style.transform = `translateX(-${currentSlideIndex * 100}%)`;
 }
 
 function updateDots() {
     const dots = document.querySelectorAll('.dot');
-    dots.forEach((dot, index) => {
-        dot.classList.toggle('active', index === currentSlideIndex);
-    });
+    dots.forEach((dot,index) => dot.classList.toggle('active', index === currentSlideIndex));
 }
 
 function updateCounter() {
-    const currentSlideElement = document.getElementById('currentSlide');
-    if (currentSlideElement) {
-        currentSlideElement.textContent = currentSlideIndex + 1;
-    }
+    const currentSlideEl = document.getElementById('currentSlide');
+    if(currentSlideEl) currentSlideEl.textContent = currentSlideIndex + 1;
 }
 
 function changeSlide(direction) {
-    if (totalSlides <= 1) return;
-    
+    if(totalSlides <= 1) return;
     currentSlideIndex += direction;
-    
-    if (currentSlideIndex >= totalSlides) {
-        currentSlideIndex = 0;
-    } else if (currentSlideIndex < 0) {
-        currentSlideIndex = totalSlides - 1;
-    }
-    
+    if(currentSlideIndex >= totalSlides) currentSlideIndex = 0;
+    else if(currentSlideIndex < 0) currentSlideIndex = totalSlides - 1;
     updateSliderPosition();
     updateDots();
     updateCounter();
 }
 
 function goToSlide(index) {
-    if (index >= 0 && index < totalSlides) {
+    if(index >= 0 && index < totalSlides) {
         currentSlideIndex = index;
         updateSliderPosition();
         updateDots();
@@ -668,119 +795,210 @@ function goToSlide(index) {
     }
 }
 
-// Auto-slide functionality (optional)
 let autoSlideInterval;
-
 function startAutoSlide() {
-    if (totalSlides > 1) {
-        autoSlideInterval = setInterval(() => {
-            changeSlide(1);
-        }, 5000); // Change slide every 5 seconds
-    }
+    if(totalSlides>1) autoSlideInterval = setInterval(()=>changeSlide(1),5000);
 }
-
 function stopAutoSlide() {
-    if (autoSlideInterval) {
-        clearInterval(autoSlideInterval);
-    }
+    if(autoSlideInterval) clearInterval(autoSlideInterval);
 }
 
-// Keyboard navigation
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'ArrowLeft') {
-        changeSlide(-1);
-    } else if (e.key === 'ArrowRight') {
-        changeSlide(1);
-    }
-});
-
-// Touch/swipe support for mobile
-let touchStartX = 0;
-let touchEndX = 0;
-
-document.addEventListener('touchstart', function(e) {
-    touchStartX = e.changedTouches[0].screenX;
-});
-
-document.addEventListener('touchend', function(e) {
-    touchEndX = e.changedTouches[0].screenX;
-    handleSwipe();
-});
-
-function handleSwipe() {
-    const swipeThreshold = 50;
-    const diff = touchStartX - touchEndX;
-    
-    if (Math.abs(diff) > swipeThreshold) {
-        if (diff > 0) {
-            changeSlide(1); // Swipe left, go to next slide
-        } else {
-            changeSlide(-1); // Swipe right, go to previous slide
-        }
-    }
-}
-
-function summarize(id) {
-    // Add loading state
+// ---------- Summary logic ----------
+function summarize(event, transcriptId) {
     const button = event.target;
     const originalText = button.innerHTML;
     button.innerHTML = '⏳ Generating Summary...';
     button.disabled = true;
-    
-    fetch("{% url 'summarize_transcript' 0 %}".replace('/0/', `/${id}/`), {
-        method: "POST",
+
+    const url = `/dashboard/transcript/${transcriptId}/summarize/`;  // CHANGED: Match urls.py
+    console.log('Fetching URL:', url);  // Debug URL
+
+    fetch(url, {
+        method: 'POST',
         headers: {
-            "X-CSRFToken": "{{ csrf_token }}",
-            "Accept": "application/json"
+            'X-CSRFToken': csrf_token,
+            'Accept': 'application/json'
         }
     })
     .then(res => {
-        if (!res.ok) {
-            return res.text().then(text => { throw new Error(text); });
-        }
+        console.log('Response status:', res.status);
+        if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
         return res.json();
     })
     .then(data => {
+        console.log('Response data:', data);
         if (data.success) {
-            // Add smooth reload with animation
-            document.body.style.opacity = '0';
-            setTimeout(() => {
-                location.reload();
-            }, 300);
+            const summaryEl = document.querySelector('.summary-text');
+            if (summaryEl) summaryEl.innerHTML = data.summary;
+            let audioContainer = document.querySelector('#summary-audio');
+            if (!audioContainer) {
+                audioContainer = document.createElement('div');
+                audioContainer.id = 'summary-audio';
+                document.getElementById('summary-section').appendChild(audioContainer);
+            }
+            audioContainer.innerHTML = `
+                <h4>🔊 Summary Audio</h4>
+                <audio controls>
+                    <source src="${data.summary_audio_url}" type="audio/mpeg">
+                </audio>
+            `;
+            button.innerHTML = originalText;
+            button.disabled = false;
         } else {
-            alert("Summarization failed: " + data.error);
+            alert("Error generating summary: " + data.error);
             button.innerHTML = originalText;
             button.disabled = false;
         }
     })
     .catch(err => {
-        console.error("Error:", err);
+        console.error('Fetch error:', err);
         alert("Network error: " + err.message);
         button.innerHTML = originalText;
         button.disabled = false;
     });
 }
 
-// Add smooth page transitions
-document.addEventListener('DOMContentLoaded', function() {
+// ---------- Init ----------
+document.addEventListener('DOMContentLoaded', function(){
     document.body.style.opacity = '1';
-    
-    // Initialize slider
-    if (totalSlides > 0) {
+    if(totalSlides>0){
         updateSliderPosition();
         updateDots();
         updateCounter();
-        
-        // Start auto-slide
         startAutoSlide();
-        
-        // Pause auto-slide on hover
+
         const sliderContainer = document.querySelector('.slider-container');
-        if (sliderContainer) {
+        if(sliderContainer){
             sliderContainer.addEventListener('mouseenter', stopAutoSlide);
             sliderContainer.addEventListener('mouseleave', startAutoSlide);
         }
     }
+
+    document.addEventListener('keydown', function(e){
+        if(e.key==='ArrowLeft') changeSlide(-1);
+        else if(e.key==='ArrowRight') changeSlide(1);
+    });
+
+    let touchStartX=0, touchEndX=0;
+    document.addEventListener('touchstart', e=>touchStartX=e.changedTouches[0].screenX);
+    document.addEventListener('touchend', e=>{
+        touchEndX=e.changedTouches[0].screenX;
+        const diff=touchStartX-touchEndX;
+        if(Math.abs(diff)>50) diff>0 ? changeSlide(1) : changeSlide(-1);
+    });
 });
+</script>
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const btn = document.getElementById('summarize-btn');
+    if (btn) {
+        btn.addEventListener('click', async function() {
+            btn.disabled = true;
+            btn.textContent = 'Summarizing...';  // Optional: Show loading state
+
+            try {
+                const response = await fetch(btn.dataset.url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // 'X-CSRFToken': getCookie('csrftoken'),  // Uncomment if you remove @csrf_exempt later
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (data.success) {
+    const summaryDiv = document.getElementById('summary-content');
+    if (summaryDiv) {
+        summaryDiv.innerHTML = data.summary;
+
+        // Optionally handle audio
+        if (data.summary_audio_url) {
+            const audioPlayer = document.createElement('audio');
+            audioPlayer.controls = true;
+            audioPlayer.src = data.summary_audio_url;
+            summaryDiv.appendChild(audioPlayer);  // Now safe
+        }
+    } else {
+        console.warn('Summary div not found; cannot update content.');
+    }
+
+    // Hide the button after success
+    btn.style.display = 'none';
+} else {
+    alert('Error: ' + data.error);
+}
+            } catch (error) {
+                console.error('Fetch error:', error);
+                alert('Failed to summarize: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '💡 Summarize Transcript';
+            }
+        });
+    }
+});
+</script>
+
+<script>
+(function(){
+  const csrf = '{{ csrf_token }}';
+  const btn = document.getElementById('qa-submit');
+  const input = document.getElementById('qa-input');
+  const status = document.getElementById('qa-status');
+  const result = document.getElementById('qa-result');
+
+  btn.addEventListener('click', async () => {
+    const q = (input.value || '').trim();
+    if(!q) { alert('Please type a question'); return; }
+    btn.disabled = true;
+    status.textContent = 'Thinking...';
+    result.classList.add('hidden');
+    try {
+      const resp = await fetch("{% url 'ask_meeting_question' meeting.id %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrf
+        },
+        body: JSON.stringify({ question: q })
+      });
+      const data = await resp.json();
+      if(!data.success) {
+        status.textContent = 'Error: ' + (data.error || 'unknown');
+        btn.disabled = false;
+        return;
+      }
+      // show answer
+      result.innerText = data.answer;
+      result.classList.remove('hidden');
+      status.textContent = data.mode === 'llm' ? 'Answered by LLM' : 'Extractive result (no LLM)';
+    } catch (err) {
+      console.error(err);
+      status.textContent = 'Network error';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+})();
 </script>
 {% endblock %}

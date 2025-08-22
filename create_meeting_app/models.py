@@ -26,8 +26,15 @@ class Transcript(models.Model):
     raw_text        = models.TextField(blank=True, null=True)
     text            = models.TextField()
     summary         = models.TextField(blank=True, null=True)
-    translated_text = models.TextField(blank=True, null=True)   # ← NEW: holds English translation
+    translated_text = models.TextField(blank=True, null=True)
     created         = models.DateTimeField(auto_now_add=True)
+
+    # NEW: TTS audio files
+    transcript_audio = models.FileField(upload_to='tts/', null=True, blank=True)
+    summary_audio    = models.FileField(upload_to='tts/', null=True, blank=True)
+
+    # NEW: Field for deleted hateful lines
+    hateful_text    = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return f"Transcript for {self.meeting} at {self.created}"
