@@ -220,24 +220,26 @@ Transcript:
         print(f"Unexpected error: {error_text}")  # NEW
         return JsonResponse({"success": False, "error": error_text}, status=500)
 
-from create_meeting_app.utils.export_pdf import export_meeting_summary_pdf
+# Temporarily commented out due to WeasyPrint Windows compatibility issues
+# from create_meeting_app.utils.export_pdf import export_meeting_summary_pdf
 from django.http import FileResponse, Http404
 
-@login_required
-def download_summary_pdf(request, meeting_id):
-    try:
-        path = export_meeting_summary_pdf(meeting_id)
-        return FileResponse(open(path, 'rb'),
-                           as_attachment=True,
-                           filename=f"meeting_{meeting_id}.pdf")
-    except ValueError as e:
-        return HttpResponseBadRequest(f"Cannot generate PDF: {e}")
-    except Meeting.DoesNotExist:
-        raise Http404("Meeting not found.")
-    except FileNotFoundError:
-        raise Http404("PDF file not found.")
-    except Exception as e:
-        return HttpResponseBadRequest(f"Unexpected error: {e}")
+# Temporarily commented out due to WeasyPrint Windows compatibility issues
+# @login_required
+# def download_summary_pdf(request, meeting_id):
+#     try:
+#         path = export_meeting_summary_pdf(meeting_id)
+#         return FileResponse(open(path, 'rb'),
+#                            as_attachment=True,
+#                            filename=f"meeting_{meeting_id}.pdf")
+#     except ValueError as e:
+#         return HttpResponseBadRequest(f"Cannot generate PDF: {e}")
+#     except Meeting.DoesNotExist:
+#         raise Http404("Meeting not found.")
+#     except FileNotFoundError:
+#         raise Http404("PDF file not found.")
+#     except Exception as e:
+#         return HttpResponseBadRequest(f"Unexpected error: {e}")
     
 
 # inside views.py: paste this view
